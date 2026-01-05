@@ -11,6 +11,9 @@ export interface Password {
   updatedAt?: string;
 }
 
+// PasswordData类型别名，确保与Password接口一致
+export type PasswordData = Password;
+
 // 分类接口
 export interface Category {
   name: string;

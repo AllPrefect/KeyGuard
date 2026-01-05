@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { savePassword, fetchPasswords, deletePassword } from '../services/passwordService';
+import React, { useState, useEffect, useRef } from 'react';
+import { savePassword, fetchPasswords, deletePassword, authenticateMasterPassword, removeAuthToken } from '../services/passwordService';
 import { encrypt, decrypt, generateRandomPassword } from '../utils/encryption';
 import { Password, FormData } from '../types';
 import Header from '../components/Header';
@@ -13,8 +13,9 @@ const HomePage: React.FC = () => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [editingPassword, setEditingPassword] = useState<Password | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [masterPassword, setMasterPassword] = useState<string>('');
+  const [tempMasterPassword, setTempMasterPassword] = useState<string>(''); // 仅用于登录表单
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const masterPasswordRef = useRef<string>(''); // 使用ref临时存储主密码，避免状态持久化
 
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -25,22 +26,27 @@ const HomePage: React.FC = () => {
     notes: ''
   });
 
+  // 检查localStorage中是否有现有token
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    console.log('HomePage - Checking for existing token:', token);
+    if (token) {
+      console.log('HomePage - Token found, setting authenticated to true');
+      setIsAuthenticated(true);
+    } else {
+      console.log('HomePage - No token found in localStorage');
+    }
+  }, []);
+
   // 加载密码数据
   useEffect(() => {
     const loadPasswords = async () => {
       if (isAuthenticated) {
         try {
+          // 短暂延迟确保token已保存
+          await new Promise(resolve => setTimeout(resolve, 100));
           const savedPasswords = await fetchPasswords();
-          if (savedPasswords && savedPasswords.length > 0) {
-            // 解密每个密码的密码字段
-            const decryptedPasswords = savedPasswords.map(pwd => ({
-              ...pwd,
-              password: decrypt(pwd.password, masterPassword)
-            }));
-            setPasswords(decryptedPasswords);
-          } else {
-            setPasswords([]);
-          }
+          setPasswords(savedPasswords || []);
         } catch (error) {
           console.error('Failed to load passwords:', error);
           setPasswords([]);
@@ -48,7 +54,7 @@ const HomePage: React.FC = () => {
       }
     };
     loadPasswords();
-  }, [isAuthenticated, masterPassword]);
+  }, [isAuthenticated]);
 
   // 处理表单输入
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -63,6 +69,20 @@ const HomePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // 检查密码字段是否为空
+    if (!formData.password.trim()) {
+      alert('密码不能为空');
+      return;
+    }
+    
+    // 检查masterPassword是否存在
+    if (!masterPasswordRef.current) {
+      console.error('Master password is required for encryption');
+      alert('请重新登录以获取主密码');
+      handleLogout();
+      return;
+    }
+    
     let updatedPassword: Password;
     
     if (editingPassword) {
@@ -74,15 +94,15 @@ const HomePage: React.FC = () => {
       };
       
       // 加密密码
-      updatedPassword.password = encrypt(updatedPassword.password, masterPassword);
+      updatedPassword.password = encrypt(updatedPassword.password, masterPasswordRef.current);
       
       // 保存到数据库
       await savePassword(updatedPassword);
       
-      // 更新状态
+      // 更新状态，保持加密状态
       const updatedPasswords = passwords.map(pwd =>
         pwd.id === updatedPassword.id
-          ? { ...updatedPassword, password: formData.password } // 保持明文密码用于状态
+          ? updatedPassword
           : pwd
       );
       setPasswords(updatedPasswords);
@@ -95,13 +115,13 @@ const HomePage: React.FC = () => {
       };
       
       // 加密密码
-      updatedPassword.password = encrypt(updatedPassword.password, masterPassword);
+      updatedPassword.password = encrypt(updatedPassword.password, masterPasswordRef.current);
       
       // 保存到数据库
       await savePassword(updatedPassword);
       
-      // 更新状态
-      const updatedPasswords = [...passwords, { ...updatedPassword, password: formData.password }];
+      // 更新状态，保持加密状态
+      const updatedPasswords = [...passwords, updatedPassword];
       setPasswords(updatedPasswords);
     }
     
@@ -127,10 +147,32 @@ const HomePage: React.FC = () => {
   };
 
   // 编辑密码
-  const handleEdit = (password: Password) => {
-    setFormData(password);
-    setEditingPassword(password);
-    setShowModal(true);
+  const handleEdit = (encryptedPassword: Password) => {
+    // 检查masterPassword是否存在
+    if (!masterPasswordRef.current) {
+      console.error('Master password is required for decryption');
+      alert('请重新登录以获取主密码');
+      handleLogout();
+      return;
+    }
+    
+    try {
+      // 仅在需要时解密密码用于编辑
+      const decryptedPassword = decrypt(encryptedPassword.password, masterPasswordRef.current);
+      
+      // 创建包含解密密码的临时对象用于表单编辑
+      const passwordForEdit = {
+        ...encryptedPassword,
+        password: decryptedPassword
+      };
+      
+      setFormData(passwordForEdit);
+      setEditingPassword(encryptedPassword); // 保存原始加密数据用于后续比较
+      setShowModal(true);
+    } catch (error) {
+      console.error('Failed to decrypt password for editing:', error);
+      alert('编辑密码失败');
+    }
   };
 
   // 重置表单
@@ -153,24 +195,52 @@ const HomePage: React.FC = () => {
   };
 
   // 主密码验证
-  const handleMasterPasswordSubmit = (e: React.FormEvent) => {
+  const handleMasterPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (masterPassword.trim()) {
-      setIsAuthenticated(true);
+    if (tempMasterPassword.trim()) {
+      const result = await authenticateMasterPassword(tempMasterPassword);
+      if (result.success) {
+        // 仅在验证成功后临时存储主密码到ref中
+        masterPasswordRef.current = tempMasterPassword;
+        // 清空临时状态
+        setTempMasterPassword('');
+        setIsAuthenticated(true);
+      } else {
+        alert('主密码验证失败，请重试');
+        // 清空临时状态
+        setTempMasterPassword('');
+      }
     }
   };
 
   // 登出
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setMasterPassword('');
+    // 清除主密码的临时存储
+    masterPasswordRef.current = '';
     setPasswords([]);
+    removeAuthToken();
   };
 
   // 复制密码
-  const handleCopyPassword = (password: string) => {
-    navigator.clipboard.writeText(password);
-    alert('密码已复制到剪贴板');
+  const handleCopyPassword = async (encryptedPassword: string) => {
+    // 检查masterPassword是否存在
+    if (!masterPasswordRef.current) {
+      console.error('Master password is required for decryption');
+      alert('请重新登录以获取主密码');
+      handleLogout();
+      return;
+    }
+    
+    try {
+      // 仅在需要时解密，使用后立即丢弃
+      const decryptedPassword = decrypt(encryptedPassword, masterPasswordRef.current);
+      await navigator.clipboard.writeText(decryptedPassword);
+      alert('密码已复制到剪贴板');
+    } catch (error) {
+      console.error('Failed to decrypt and copy password:', error);
+      alert('复制密码失败');
+    }
   };
 
   // 生成密码
@@ -184,8 +254,8 @@ const HomePage: React.FC = () => {
       <div className="container">
         <Header isAuthenticated={isAuthenticated} onLogout={handleLogout} />
         <LoginForm
-          masterPassword={masterPassword}
-          onMasterPasswordChange={setMasterPassword}
+          masterPassword={tempMasterPassword}
+          onMasterPasswordChange={setTempMasterPassword}
           onSubmit={handleMasterPasswordSubmit}
         />
       </div>
