@@ -2,8 +2,9 @@ from datetime import datetime
 from utils.db import Database
 
 class Password:
-    def __init__(self, id, title, username, password, category, url='', notes='', created_at=None, updated_at=None):
+    def __init__(self, id, user_id, title, username, password, category, url='', notes='', created_at=None, updated_at=None):
         self.id = id
+        self.user_id = user_id
         self.title = title
         self.username = username
         self.password = password
@@ -17,6 +18,7 @@ class Password:
         """转换为字典格式"""
         return {
             'id': self.id,
+            'userId': self.user_id,
             'title': self.title,
             'username': self.username,
             'password': self.password,
@@ -28,13 +30,14 @@ class Password:
         }
     
     @classmethod
-    def get_all(cls):
-        """获取所有密码"""
-        query = 'SELECT * FROM passwords ORDER BY category, title'
-        rows = Database.execute_query(query)
+    def get_all(cls, user_id):
+        """获取特定用户的所有密码"""
+        query = 'SELECT * FROM passwords WHERE user_id = ? ORDER BY category, title'
+        rows = Database.execute_query(query, (user_id,))
         
         return [cls(
             row['id'],
+            row['user_id'],
             row['title'],
             row['username'],
             row['password'],
@@ -46,15 +49,16 @@ class Password:
         ).to_dict() for row in rows]
     
     @classmethod
-    def get_by_id(cls, password_id):
-        """根据ID获取密码"""
-        query = 'SELECT * FROM passwords WHERE id = ?'
-        rows = Database.execute_query(query, (password_id,))
+    def get_by_id(cls, password_id, user_id):
+        """根据ID获取密码，确保只能访问自己的密码"""
+        query = 'SELECT * FROM passwords WHERE id = ? AND user_id = ?'
+        rows = Database.execute_query(query, (password_id, user_id))
         
         if rows:
             row = rows[0]
             return cls(
                 row['id'],
+                row['user_id'],
                 row['title'],
                 row['username'],
                 row['password'],
@@ -71,6 +75,7 @@ class Password:
         """创建新密码"""
         password = cls(
             password_data['id'],
+            password_data['userId'],
             password_data['title'],
             password_data['username'],
             password_data['password'],
@@ -82,12 +87,13 @@ class Password:
         )
         
         query = '''
-            INSERT INTO passwords (id, title, username, password, url, category, notes, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO passwords (id, user_id, title, username, password, url, category, notes, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         '''
         
         params = (
             password.id,
+            password.user_id,
             password.title,
             password.username,
             password.password,
@@ -102,9 +108,9 @@ class Password:
     
     @classmethod
     def update(cls, password_id, password_data):
-        """更新密码"""
+        """更新密码，确保只能更新自己的密码"""
         # 先获取现有密码
-        existing_password = cls.get_by_id(password_id)
+        existing_password = cls.get_by_id(password_id, password_data['userId'])
         if not existing_password:
             return False
         
@@ -115,7 +121,7 @@ class Password:
             UPDATE passwords SET 
                 title = ?, username = ?, password = ?, url = ?, 
                 category = ?, notes = ?, updated_at = ? 
-            WHERE id = ?
+            WHERE id = ? AND user_id = ?
         '''
         
         params = (
@@ -126,13 +132,14 @@ class Password:
             password_data.get('category', existing_password['category']),
             password_data.get('notes', existing_password['notes']),
             updated_at,
-            password_id
+            password_id,
+            password_data['userId']
         )
         
         return Database.execute_query(query, params, commit=True)
     
     @classmethod
-    def delete(cls, password_id):
-        """删除密码"""
-        query = 'DELETE FROM passwords WHERE id = ?'
-        return Database.execute_query(query, (password_id,), commit=True)
+    def delete(cls, password_id, user_id):
+        """删除密码，确保只能删除自己的密码"""
+        query = 'DELETE FROM passwords WHERE id = ? AND user_id = ?'
+        return Database.execute_query(query, (password_id, user_id), commit=True)

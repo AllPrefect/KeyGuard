@@ -23,23 +23,25 @@ class AuthController:
             logger.info(f"认证请求 - IP地址: {ip_address}")
             
             # 检查是否有用户
-            query = 'SELECT * FROM users LIMIT 1'
+            query = 'SELECT * FROM users'
             from utils.db import Database
             rows = Database.execute_query(query)
             
             if rows:
-                # 有用户，使用主密码作为密码进行验证
-                user = User.get_by_id(rows[0]['id'])
-                if user and user.verify_password(master_password):
-                    logger.info(f"用户{user.username}主密码验证成功")
-                    
-                    # 生成JWT令牌
-                    token = JWTUtil.generate_token(user.id, user.username, ip_address=ip_address)
-                    logger.info(f"用户{user.username}认证成功，生成JWT令牌")
-                    return jsonify({'success': True, 'token': token, 'user': user.to_dict()}), 200
-                else:
-                    logger.warning(f"主密码验证失败 - IP地址: {ip_address}")
-                    return jsonify({'error': 'Invalid master password'}), 401
+                # 有用户，遍历所有用户验证主密码
+                for row in rows:
+                    user = User.get_by_id(row['id'])
+                    if user and user.verify_password(master_password):
+                        logger.info(f"用户{user.username}主密码验证成功")
+                        
+                        # 生成JWT令牌
+                        token = JWTUtil.generate_token(user.id, user.username, ip_address=ip_address)
+                        logger.info(f"用户{user.username}认证成功，生成JWT令牌")
+                        return jsonify({'success': True, 'token': token, 'user': user.to_dict()}), 200
+                
+                # 所有用户都验证失败
+                logger.warning(f"主密码验证失败 - IP地址: {ip_address}")
+                return jsonify({'error': 'Invalid master password'}), 401
             else:
                 # 没有用户，创建第一个用户，使用主密码作为密码
                 # 使用默认用户名

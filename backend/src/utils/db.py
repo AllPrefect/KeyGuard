@@ -35,6 +35,7 @@ class Database:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS passwords (
                 id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
                 title TEXT NOT NULL,
                 username TEXT NOT NULL,
                 password TEXT NOT NULL,
@@ -42,7 +43,8 @@ class Database:
                 category TEXT NOT NULL,
                 notes TEXT,
                 created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
         

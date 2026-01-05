@@ -13,7 +13,7 @@ class PasswordController:
         """获取所有密码"""
         try:
             logger.info("开始获取所有密码")
-            passwords = Password.get_all()
+            passwords = Password.get_all(request.user_id)
             logger.info(f"成功获取{len(passwords)}条密码记录")
             return jsonify(passwords), 200
         except Exception as e:
@@ -26,7 +26,7 @@ class PasswordController:
         """根据ID获取密码"""
         try:
             logger.info(f"开始获取ID为{password_id}的密码")
-            password = Password.get_by_id(password_id)
+            password = Password.get_by_id(password_id, request.user_id)
             if password:
                 logger.info(f"成功获取ID为{password_id}的密码记录")
                 return jsonify(password), 200
@@ -44,8 +44,11 @@ class PasswordController:
             logger.info("开始保存密码操作")
             password_data = request.json
             
+            # 添加当前用户ID
+            password_data['userId'] = request.user_id
+            
             # 验证必要字段
-            required_fields = ['id', 'title', 'username', 'password', 'category']
+            required_fields = ['id', 'title', 'username', 'password', 'category', 'userId']
             for field in required_fields:
                 if field not in password_data:
                     logger.warning(f"保存密码缺少必要字段: {field}")
@@ -57,7 +60,7 @@ class PasswordController:
                 log_data['password'] = '***'  # 隐藏密码内容
             
             # 检查密码是否已存在
-            existing_password = Password.get_by_id(password_data['id'])
+            existing_password = Password.get_by_id(password_data['id'], request.user_id)
             if existing_password:
                 # 更新现有密码
                 logger.info(f"更新ID为{password_data['id']}的密码记录")
@@ -95,6 +98,9 @@ class PasswordController:
                 logger.warning("更新密码缺少数据")
                 return jsonify({'error': 'Missing password data'}), 400
             
+            # 添加当前用户ID
+            password_data['userId'] = request.user_id
+            
             # 隐藏敏感信息
             log_data = password_data.copy()
             if 'password' in log_data:
@@ -117,7 +123,7 @@ class PasswordController:
         """删除密码"""
         try:
             logger.info(f"开始删除ID为{password_id}的密码")
-            success = Password.delete(password_id)
+            success = Password.delete(password_id, request.user_id)
             if success:
                 logger.info(f"成功删除ID为{password_id}的密码")
                 return jsonify({'success': True}), 200

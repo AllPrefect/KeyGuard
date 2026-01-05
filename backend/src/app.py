@@ -77,4 +77,4 @@ def serve_static(path):
 
 if __name__ == '__main__':
     logger.info(f"KeyGuard后端服务启动，监听端口5000，环境: {env}")
-    app.run(debug=current_config.DEBUG, port=5000, use_reloader=False)
+    app.run(debug=current_config.DEBUG, host='0.0.0.0', port=5000, use_reloader=False)

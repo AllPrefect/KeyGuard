@@ -18,7 +18,7 @@ class JWTUtil:
             'user_id': user_id,
             'username': username,
             'ip_address': ip_address,
-            'exp': datetime.utcnow() + timedelta(hours=24),  # 令牌有效期24小时
+            'exp': datetime.utcnow() + timedelta(minutes=30),  # 令牌有效期30分钟
             'iat': datetime.utcnow()
         }
         
