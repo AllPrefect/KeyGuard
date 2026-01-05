@@ -16,26 +16,43 @@ sys.path.append(current_dir)
 
 from config.config import config
 from utils.db import Database
+from utils.log import Logger
 from routes.password_routes import password_bp
+from routes.auth_routes import auth_bp
+
+# 初始化日志
+logger = Logger.get_logger('app')
 
 # 获取当前环境配置
 env = os.getenv('FLASK_ENV', 'default')
 current_config = config[env]
+logger.info(f"加载{env}环境配置")
 
 # 创建Flask应用
 app = Flask(__name__)
 app.config.from_object(current_config)
+logger.info("Flask应用创建完成")
 
 # 允许跨域请求
 CORS(app)
+logger.info("CORS配置完成")
 
 # 初始化数据库
-@app.before_first_request
-def init_database():
-    Database.init_db()
+logger.info("开始初始化数据库...")
+Database.init_db()
+logger.info("数据库初始化完成")
 
-# 注册蓝图
+## 注册蓝图
+logger.info("开始注册蓝图...")
 app.register_blueprint(password_bp)
+app.register_blueprint(auth_bp)
+logger.info("蓝图注册完成")
+
+# 健康检查端点
+@app.route('/health')
+def health_check():
+    """健康检查端点"""
+    return {'status': 'ok', 'message': 'KeyGuard backend is running'}
 
 # 静态文件服务配置
 @app.route('/')
@@ -59,4 +76,5 @@ def serve_static(path):
     return send_from_directory(frontend_dist_dir, path)
 
 if __name__ == '__main__':
-    app.run(debug=current_config.DEBUG, port=5000)
+    logger.info(f"KeyGuard后端服务启动，监听端口5000，环境: {env}")
+    app.run(debug=current_config.DEBUG, port=5000, use_reloader=False)

@@ -6,6 +6,10 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.config import config
+from utils.log import Logger
+
+# 初始化日志
+logger = Logger.get_logger('db')
 
 # 获取当前配置
 current_config = config[os.getenv('FLASK_ENV', 'default')]
@@ -42,6 +46,19 @@ class Database:
             )
         ''')
         
+        # 创建用户表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        ''')
+        
+
+        
         conn.commit()
         conn.close()
     
@@ -52,6 +69,14 @@ class Database:
         cursor = conn.cursor()
         
         try:
+            # 记录查询信息（隐藏敏感信息）
+            query_type = query.strip().split()[0].upper()
+            if query_type in ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'ALTER']:
+                logger.debug(f"执行{query_type}查询")
+                logger.debug(f"查询SQL: {query}")
+                if params:
+                    logger.debug(f"查询参数: {params}")
+            
             if params:
                 cursor.execute(query, params)
             else:
@@ -59,11 +84,18 @@ class Database:
             
             if commit:
                 conn.commit()
+                logger.info(f"{query_type}查询执行成功并提交")
                 return True
             else:
-                return cursor.fetchall()
+                results = cursor.fetchall()
+                logger.debug(f"{query_type}查询返回{len(results)}条记录")
+                return results
         except Exception as e:
             conn.rollback()
+            logger.error(f"数据库查询执行失败: {str(e)}")
+            logger.error(f"失败的SQL: {query}")
+            if params:
+                logger.error(f"失败的参数: {params}")
             raise e
         finally:
             conn.close()
