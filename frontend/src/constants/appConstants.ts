@@ -58,3 +58,24 @@ export const ROUTES = {
   LOGIN: '/login',
   SETTINGS: '/settings'
 };
+
+// Toast提示类型
+export const TOAST_TYPES = {
+  SUCCESS: 'success',
+  ERROR: 'error',
+  WARNING: 'warning',
+  INFO: 'info'
+} as const;
+
+// 应用消息
+export const MESSAGES = {
+  REQUIRED_PASSWORD: '密码不能为空',
+  RELOGIN_REQUIRED: '请重新登录以获取主密码',
+  CONFIRM_DELETE: '确定要删除这个密码吗？',
+  DELETE_FAILED: '删除密码失败',
+  PASSWORD_COPIED: '密码已复制到剪贴板',
+  AUTH_FAILED: '主密码验证失败，请重试',
+  MASTER_PASSWORD_REMINDER: '提示：请记住您的主密码，它是解密所有数据的唯一钥匙。',
+  EDIT_FAILED: '编辑密码失败',
+  COPY_FAILED: '复制密码失败'
+};

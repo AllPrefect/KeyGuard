@@ -7,6 +7,10 @@ import LoginForm from '../components/LoginForm';
 import Toolbar from '../components/Toolbar';
 import PasswordsList from '../components/PasswordsList';
 import PasswordForm from '../components/PasswordForm';
+import Toast from '../components/Toast';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { TOAST_TYPES, MESSAGES } from '../constants/appConstants';
+import { ToastType } from '../components/Toast';
 
 const HomePage: React.FC = () => {
   const [passwords, setPasswords] = useState<Password[]>([]);
@@ -26,6 +30,16 @@ const HomePage: React.FC = () => {
     notes: ''
   });
 
+  // Toast提示状态管理
+  const [toastVisible, setToastVisible] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string>('');
+  const [toastType, setToastType] = useState<ToastType>(TOAST_TYPES.INFO);
+  
+  // 确认对话框状态管理
+  const [confirmVisible, setConfirmVisible] = useState<boolean>(false);
+  const [confirmMessage, setConfirmMessage] = useState<string>('');
+  const [confirmCallback, setConfirmCallback] = useState<(() => void) | null>(null);
+
   // 检查localStorage中是否有现有token
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -37,6 +51,37 @@ const HomePage: React.FC = () => {
       console.log('HomePage - No token found in localStorage');
     }
   }, []);
+
+  // 显示Toast提示
+  const showToast = (message: string, type: ToastType = TOAST_TYPES.INFO) => {
+    console.log('showToast called:', message, type);
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+    console.log('Toast state updated:', toastVisible, toastMessage, toastType);
+  };
+
+  // 显示确认对话框
+  const showConfirm = (message: string, callback: () => void) => {
+    setConfirmMessage(message);
+    setConfirmCallback(callback);
+    setConfirmVisible(true);
+  };
+
+  // 处理确认操作
+  const handleConfirm = () => {
+    if (confirmCallback) {
+      confirmCallback();
+    }
+    setConfirmVisible(false);
+    setConfirmCallback(null);
+  };
+
+  // 处理取消操作
+  const handleCancel = () => {
+    setConfirmVisible(false);
+    setConfirmCallback(null);
+  };
 
   // 加载密码数据
   useEffect(() => {
@@ -50,6 +95,7 @@ const HomePage: React.FC = () => {
         } catch (error) {
           console.error('Failed to load passwords:', error);
           setPasswords([]);
+          showToast('加载密码失败', TOAST_TYPES.ERROR);
         }
       }
     };
@@ -71,67 +117,74 @@ const HomePage: React.FC = () => {
     
     // 检查密码字段是否为空
     if (!formData.password.trim()) {
-      alert('密码不能为空');
+      showToast(MESSAGES.REQUIRED_PASSWORD, TOAST_TYPES.WARNING);
       return;
     }
     
     // 检查masterPassword是否存在
     if (!masterPasswordRef.current) {
       console.error('Master password is required for encryption');
-      alert('请重新登录以获取主密码');
+      showToast(MESSAGES.RELOGIN_REQUIRED, TOAST_TYPES.ERROR);
       handleLogout();
       return;
     }
     
-    let updatedPassword: Password;
-    
-    if (editingPassword) {
-      // 编辑现有密码
-      updatedPassword = {
-        ...formData,
-        id: editingPassword.id,
-        createdAt: editingPassword.createdAt
-      };
+    try {
+      let updatedPassword: Password;
       
-      // 加密密码
-      updatedPassword.password = encrypt(updatedPassword.password, masterPasswordRef.current);
+      if (editingPassword) {
+        // 编辑现有密码
+        updatedPassword = {
+          ...formData,
+          id: editingPassword.id,
+          createdAt: editingPassword.createdAt
+        };
+        
+        // 加密密码
+        updatedPassword.password = encrypt(updatedPassword.password, masterPasswordRef.current);
+        
+        // 保存到数据库
+        await savePassword(updatedPassword);
+        
+        // 更新状态，保持加密状态
+        const updatedPasswords = passwords.map(pwd =>
+          pwd.id === updatedPassword.id
+            ? updatedPassword
+            : pwd
+        );
+        setPasswords(updatedPasswords);
+        showToast('密码更新成功', TOAST_TYPES.SUCCESS);
+      } else {
+        // 添加新密码
+        updatedPassword = {
+          ...formData,
+          id: Date.now().toString(),
+          createdAt: new Date().toISOString()
+        };
+        
+        // 加密密码
+        updatedPassword.password = encrypt(updatedPassword.password, masterPasswordRef.current);
+        
+        // 保存到数据库
+        await savePassword(updatedPassword);
+        
+        // 更新状态，保持加密状态
+        const updatedPasswords = [...passwords, updatedPassword];
+        setPasswords(updatedPasswords);
+        showToast('密码添加成功', TOAST_TYPES.SUCCESS);
+      }
       
-      // 保存到数据库
-      await savePassword(updatedPassword);
-      
-      // 更新状态，保持加密状态
-      const updatedPasswords = passwords.map(pwd =>
-        pwd.id === updatedPassword.id
-          ? updatedPassword
-          : pwd
-      );
-      setPasswords(updatedPasswords);
-    } else {
-      // 添加新密码
-      updatedPassword = {
-        ...formData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString()
-      };
-      
-      // 加密密码
-      updatedPassword.password = encrypt(updatedPassword.password, masterPasswordRef.current);
-      
-      // 保存到数据库
-      await savePassword(updatedPassword);
-      
-      // 更新状态，保持加密状态
-      const updatedPasswords = [...passwords, updatedPassword];
-      setPasswords(updatedPasswords);
+      resetForm();
+      setShowModal(false);
+    } catch (error) {
+      console.error('Failed to save password:', error);
+      showToast('保存密码失败', TOAST_TYPES.ERROR);
     }
-    
-    resetForm();
-    setShowModal(false);
   };
 
   // 删除密码
   const handleDelete = async (id: string) => {
-    if (window.confirm('确定要删除这个密码吗？')) {
+    showConfirm(MESSAGES.CONFIRM_DELETE, async () => {
       try {
         // 从数据库删除
         await deletePassword(id);
@@ -141,9 +194,9 @@ const HomePage: React.FC = () => {
         setPasswords(updatedPasswords);
       } catch (error) {
         console.error('Failed to delete password:', error);
-        alert('删除密码失败');
+        showToast(MESSAGES.DELETE_FAILED, TOAST_TYPES.ERROR);
       }
-    }
+    });
   };
 
   // 编辑密码
@@ -151,7 +204,7 @@ const HomePage: React.FC = () => {
     // 检查masterPassword是否存在
     if (!masterPasswordRef.current) {
       console.error('Master password is required for decryption');
-      alert('请重新登录以获取主密码');
+      showToast(MESSAGES.RELOGIN_REQUIRED, TOAST_TYPES.ERROR);
       handleLogout();
       return;
     }
@@ -171,7 +224,7 @@ const HomePage: React.FC = () => {
       setShowModal(true);
     } catch (error) {
       console.error('Failed to decrypt password for editing:', error);
-      alert('编辑密码失败');
+      showToast(MESSAGES.EDIT_FAILED, TOAST_TYPES.ERROR);
     }
   };
 
@@ -206,7 +259,7 @@ const HomePage: React.FC = () => {
         setTempMasterPassword('');
         setIsAuthenticated(true);
       } else {
-        alert('主密码验证失败，请重试');
+        showToast(MESSAGES.AUTH_FAILED, TOAST_TYPES.ERROR);
         // 清空临时状态
         setTempMasterPassword('');
       }
@@ -227,7 +280,7 @@ const HomePage: React.FC = () => {
     // 检查masterPassword是否存在
     if (!masterPasswordRef.current) {
       console.error('Master password is required for decryption');
-      alert('请重新登录以获取主密码');
+      showToast(MESSAGES.RELOGIN_REQUIRED, TOAST_TYPES.ERROR);
       handleLogout();
       return;
     }
@@ -236,10 +289,10 @@ const HomePage: React.FC = () => {
       // 仅在需要时解密，使用后立即丢弃
       const decryptedPassword = decrypt(encryptedPassword, masterPasswordRef.current);
       await navigator.clipboard.writeText(decryptedPassword);
-      alert('密码已复制到剪贴板');
+      showToast(MESSAGES.PASSWORD_COPIED, TOAST_TYPES.SUCCESS);
     } catch (error) {
       console.error('Failed to decrypt and copy password:', error);
-      alert('复制密码失败');
+      showToast(MESSAGES.COPY_FAILED, TOAST_TYPES.ERROR);
     }
   };
 
@@ -249,49 +302,62 @@ const HomePage: React.FC = () => {
     setFormData(prev => ({ ...prev, password }));
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="container">
-        <Header isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+  return (
+    <div className="container">
+      <Header isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+      
+      {!isAuthenticated ? (
         <LoginForm
           masterPassword={tempMasterPassword}
           onMasterPasswordChange={setTempMasterPassword}
           onSubmit={handleMasterPasswordSubmit}
         />
-      </div>
-    );
-  }
+      ) : (
+        <>
+          <div className="content">
+            <Toolbar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              onAddPassword={() => setShowModal(true)}
+            />
 
-  return (
-    <div className="container">
-      <Header isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+            <PasswordsList
+              passwords={passwords}
+              searchTerm={searchTerm}
+              onCopyPassword={handleCopyPassword}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          </div>
 
-      <div className="content">
-        <Toolbar
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          onAddPassword={() => setShowModal(true)}
-        />
-
-        <PasswordsList
-          passwords={passwords}
-          searchTerm={searchTerm}
-          onCopyPassword={handleCopyPassword}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-      </div>
-
-      {showModal && (
-        <PasswordForm
-          formData={formData}
-          editingPassword={editingPassword}
-          onInputChange={handleInputChange}
-          onGeneratePassword={handleGeneratePassword}
-          onSubmit={handleSubmit}
-          onClose={handleCloseModal}
-        />
+          {showModal && (
+            <PasswordForm
+              formData={formData}
+              editingPassword={editingPassword}
+              onInputChange={handleInputChange}
+              onGeneratePassword={handleGeneratePassword}
+              onSubmit={handleSubmit}
+              onClose={handleCloseModal}
+            />
+          )}
+        </>
       )}
+      
+      {/* Toast提示组件 - 始终渲染 */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={toastVisible}
+        onClose={() => setToastVisible(false)}
+      />
+      
+      {/* 确认对话框组件 */}
+      <ConfirmDialog
+        message={confirmMessage}
+        isVisible={confirmVisible}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 };

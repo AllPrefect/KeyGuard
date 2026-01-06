@@ -1,15 +1,126 @@
+/* 现代化颜色方案 */
+:root {
+  --primary-color: #667eea;
+  --primary-light: #764ba2;
+  --secondary-color: #f093fb;
+  --accent-color: #4facfe;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #e11d48;
+  --info-color: #3b82f6;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --border-color: #e2e8f0;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --gradient-primary: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+  --gradient-accent: linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%);
+  
+  /* 提示组件颜色变量 */
+  --success-dark: #059669;
+  --warning-dark: #d97706;
+  --error-dark: #be123c;
+  --info-dark: #2563eb;
+  
+  /* Toast组件变量 */
+  --toast-success-bg: var(--success-color);
+  --toast-success-border: var(--success-dark);
+  --toast-warning-bg: var(--warning-color);
+  --toast-warning-border: var(--warning-dark);
+  --toast-error-bg: var(--error-color);
+  --toast-error-border: var(--error-dark);
+  --toast-info-bg: var(--info-color);
+  --toast-info-border: var(--info-dark);
+  
+  /* 确认对话框变量 */
+  --confirm-bg: var(--bg-primary);
+  --confirm-border: var(--border-color);
+  --confirm-title: var(--text-primary);
+  --confirm-text: var(--text-secondary);
+}
+
 .auth-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 400px;
   padding: 40px 20px;
+  background: var(--bg-secondary);
 }
 
 .auth-container .card {
-  max-width: 400px;
+  max-width: 450px;
   width: 100%;
   text-align: center;
+  background: var(--bg-primary);
+  border-radius: 16px;
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  border: none;
+  padding: 40px;
+}
+
+.auth-container h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 30px;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-container .form-group {
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.auth-container .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.auth-container .form-group input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.auth-container .form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.auth-container .btn-primary {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  margin-top: 10px;
+}
+
+.auth-container p {
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 
 .content {
@@ -39,38 +150,45 @@
 }
 
 .category-title {
-  color: #333;
+  color: var(--text-primary);
   font-size: 1.5rem;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #667eea;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--primary-color);
+  font-weight: 600;
 }
 
 .password-item {
-  background: #f8f9fa;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
 }
 
 .password-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--primary-color);
 }
 
 .password-info h3 {
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
   font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .password-info p {
   margin-bottom: 5px;
-  color: #666;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
 .password-info small {
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 0.85rem;
 }
 
@@ -78,11 +196,55 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-top: 12px;
 }
 
 .password-actions .btn {
   padding: 8px 16px;
   font-size: 0.9rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--border-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-danger {
+  background: var(--error-color);
+  color: white;
+}
+
+.btn-success {
+  background: var(--success-color);
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 @media (max-width: 768px) {
@@ -101,5 +263,376 @@
   
   .content {
     padding: 20px;
+  }
+}
+
+/* Toast提示组件样式 */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  z-index: 10000;
+  max-width: 80%;
+  opacity: 1;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.toast:hover {
+  transform: translateX(-5px) translateY(-2px);
+  box-shadow: var(--shadow-xl);
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toast-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.toast-message {
+  flex: 1;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* 确认对话框样式 */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.confirm-dialog {
+  background-color: var(--confirm-bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow-xl);
+  width: 90%;
+  max-width: 400px;
+  overflow: hidden;
+  animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
+}
+
+.confirm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--confirm-border);
+  background-color: var(--bg-tertiary);
+}
+
+.confirm-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--confirm-title);
+  font-weight: 600;
+}
+
+.confirm-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.confirm-close-btn:hover {
+  background-color: var(--border-color);
+  color: var(--text-secondary);
+  transform: rotate(90deg);
+}
+
+.confirm-body {
+  padding: 24px;
+  color: var(--confirm-text);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--confirm-border);
+  background-color: var(--bg-tertiary);
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 模态框动画 */
+.modal-overlay {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  animation: slideInRight 0.4s ease-out;
+}
+
+
+
+/* 密码项动画 */
+.password-item {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+.confirm-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.95rem;
+  min-width: 80px;
+}
+
+.confirm-btn.cancel {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.confirm-btn.cancel:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.confirm-btn.confirm {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.confirm-btn.confirm:hover {
+  background-color: var(--error-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+  /* Container adjustments */
+  .container {
+    padding: 0;
+  }
+  
+  /* Header responsiveness */
+  .header {
+    padding: 20px 15px;
+    text-align: center;
+  }
+  
+  .header h1 {
+    font-size: 2rem;
+  }
+  
+  .header p {
+    font-size: 0.9rem;
+  }
+  
+  /* Login form responsiveness */
+  .auth-container {
+    padding: 20px 15px;
+  }
+  
+  .auth-container .card {
+    padding: 30px 20px;
+  }
+  
+  .auth-container h2 {
+    font-size: 1.8rem;
+  }
+  
+  /* Content area responsiveness */
+  .content {
+    padding: 15px;
+  }
+  
+  /* Toolbar responsiveness */
+  .toolbar {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .search-box {
+    width: 100%;
+  }
+  
+  .toolbar .btn-primary {
+    width: 100%;
+  }
+  
+  /* Password item responsiveness */
+  .password-item {
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+  }
+  
+  .password-info {
+    width: 100%;
+  }
+  
+  .password-actions {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  
+  /* Modal responsiveness */
+  .modal {
+    padding: 15px;
+  }
+  
+  .modal-content {
+    margin: 0;
+    max-height: calc(100vh - 30px);
+  }
+  
+  /* Form responsiveness */
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 12px;
+  }
+  
+  /* Button responsiveness */
+  .btn {
+    padding: 12px 16px;
+    font-size: 0.95rem;
+  }
+  
+  /* Toast responsiveness */
+  .toast {
+    left: 15px;
+    right: 15px;
+    margin: 0;
+    border-radius: 8px;
+  }
+}
+
+/* 响应式设计 - Small screens */
+@media (max-width: 480px) {
+  .toast {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .confirm-dialog {
+    width: 95%;
+    margin: 10px;
   }
 }
