@@ -36,6 +36,41 @@ export const encrypt = (text: string, key: string): string => {
   return `${salt.toString()}:${iv.toString()}:${encrypted.toString()}`;
 };
 
+// 加密密钥派生函数 - 使用用户主密码和后端返回的盐值生成加密密钥
+export const deriveEncryptionKey = (masterPassword: string, salt: string): string => {
+  if (!masterPassword || !salt) {
+    throw new Error('Master password and salt are required for key derivation');
+  }
+
+  // 使用PBKDF2算法从主密码和盐值生成密钥
+  const derivedKey = CryptoJS.PBKDF2(masterPassword, salt, {
+    keySize: ENCRYPTION_CONFIG.KEY_SIZE,
+    iterations: ENCRYPTION_CONFIG.ITERATIONS
+  });
+
+  // 返回十六进制字符串形式的密钥
+  return derivedKey.toString(CryptoJS.enc.Hex);
+};
+
+// 哈希值派生函数 - 使用主密码和盐值生成用于身份验证的哈希值
+export const deriveHash = (masterPassword: string, salt: string): string => {
+  if (!masterPassword || !salt) {
+    throw new Error('Master password and salt are required for hash derivation');
+  }
+
+  // 为哈希派生添加固定后缀，与加密密钥区分
+  const hashInput = `${masterPassword}${salt}hash`;
+  
+  // 使用PBKDF2算法生成哈希值
+  const derivedHash = CryptoJS.PBKDF2(hashInput, salt, {
+    keySize: ENCRYPTION_CONFIG.KEY_SIZE,
+    iterations: ENCRYPTION_CONFIG.ITERATIONS
+  });
+
+  // 返回十六进制字符串形式的哈希值
+  return derivedHash.toString(CryptoJS.enc.Hex);
+};
+
 // 解密函数 - 支持盐值和IV的解密
 export const decrypt = (ciphertext: string, key: string): string => {
   if (!ciphertext || !key) {

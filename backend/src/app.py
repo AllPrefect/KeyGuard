@@ -33,9 +33,17 @@ app = Flask(__name__)
 app.config.from_object(current_config)
 logger.info("Flask应用创建完成")
 
-# 允许跨域请求
-CORS(app)
-logger.info("CORS配置完成")
+# 允许跨域请求，限制仅允许本地网络和前端服务器
+allowed_origins = [
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+    r'http://192.168.\d+\.\d+:3001',  # 允许192.168.x.x网段
+    r'http://10.\d+\.\d+\.\d+:3001',  # 允许10.x.x.x网段
+    r'http://172.(1[6-9]|2\d|3[0-1])\.\d+\.\d+:3001'  # 允许172.16.x.x-172.31.x.x网段
+]
+
+CORS(app, origins=allowed_origins, supports_credentials=True)
+logger.info("CORS配置完成，仅允许本地网络和前端服务器请求")
 
 # 初始化数据库
 logger.info("开始初始化数据库...")

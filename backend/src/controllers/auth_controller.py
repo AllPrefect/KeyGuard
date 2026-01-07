@@ -13,55 +13,63 @@ class AuthController:
         try:
             logger.info("开始主密码认证")
             data = request.json
-            if not data or 'masterPassword' not in data:
-                logger.warning("主密码缺失")
-                return jsonify({'error': 'Missing master password'}), 400
+            if not data or 'derivedHash' not in data:
+                logger.warning("派生哈希值缺失")
+                return jsonify({'error': 'Missing derived hash'}), 400
             
-            master_password = data['masterPassword']
+            derived_hash = data['derivedHash']
             ip_address = request.remote_addr  # 从请求中获取IP地址
             
             logger.info(f"认证请求 - IP地址: {ip_address}")
             
-            # 检查是否有用户
-            query = 'SELECT * FROM users'
+            # 直接根据password_hash查找用户
+            query = 'SELECT * FROM users WHERE password_hash = ?'
             from utils.db import Database
-            rows = Database.execute_query(query)
+            rows = Database.execute_query(query, (derived_hash,))
             
             if rows:
-                # 有用户，遍历所有用户验证主密码
-                for row in rows:
-                    user = User.get_by_id(row['id'])
-                    if user and user.verify_password(master_password):
-                        logger.info(f"用户{user.username}主密码验证成功")
-                        
-                        # 生成JWT令牌
-                        token = JWTUtil.generate_token(user.id, user.username, ip_address=ip_address)
-                        logger.info(f"用户{user.username}认证成功，生成JWT令牌")
-                        return jsonify({'success': True, 'token': token, 'user': user.to_dict()}), 200
+                # 找到匹配的用户，直接从行数据创建User对象，避免重复查询
+                row = rows[0]
+                user = User(
+                    id=row['id'],
+                    username=row['username'],
+                    password_hash=row['password_hash'],
+                    salt=row['salt'],
+                    created_at=row['created_at'],
+                    updated_at=row['updated_at']
+                )
+                logger.info(f"用户{user.username}主密码验证成功")
                 
-                # 所有用户都验证失败
-                logger.warning(f"主密码验证失败 - IP地址: {ip_address}")
-                return jsonify({'error': 'Invalid master password'}), 401
+                # 生成JWT令牌
+                token = JWTUtil.generate_token(user.id, user.username, ip_address=ip_address)
+                logger.info(f"用户{user.username}认证成功，生成JWT令牌")
+                return jsonify({'success': True, 'token': token, 'user': user.to_dict()}), 200
             else:
-                # 没有用户，创建第一个用户，使用主密码作为密码
-                # 使用默认用户名
-                username = 'user'
-                logger.info(f"创建第一个用户: {username}")
-                user_id = User.create(username, master_password)
-                if user_id:
-                    user = User.get_by_id(user_id)
-                    if user:
-                        # 生成JWT令牌
-                        token = JWTUtil.generate_token(user.id, user.username, ip_address=ip_address)
-                        logger.info(f"新用户{user.username}创建成功，生成JWT令牌")
-                        return jsonify({'success': True, 'token': token, 'user': user.to_dict()}), 200
-                logger.error("创建用户失败")
-                return jsonify({'error': 'Failed to create user'}), 500
+                # 没有找到匹配的用户，直接返回验证失败
+                logger.warning(f"认证失败 - 未找到匹配的用户 - IP地址: {ip_address}")
+                return jsonify({'success': False, 'error': 'Authentication failed'}), 401
                 
         except Exception as e:
             logger.exception(f"认证过程发生错误: {str(e)}")
             return jsonify({'error': str(e)}), 500
     
+    
+    @staticmethod
+    def get_salt():
+        """获取用户盐值"""
+        try:
+            logger.info("开始获取盐值")
+            # TODO: 从数据库中获取用户盐值返回
+            
+            # 使用User模型的generate_salt方法生成随机盐值
+            from models.user import User
+            salt = User.generate_salt()
+            logger.info("生成随机盐值")
+            return jsonify({'success': True, 'salt': salt}), 200
+                
+        except Exception as e:
+            logger.exception(f"获取盐值过程发生错误: {str(e)}")
+            return jsonify({'error': str(e)}), 500
     
     @staticmethod
     def verify_token():

@@ -3,10 +3,11 @@ import bcrypt
 from utils.db import Database
 
 class User:
-    def __init__(self, id, username, password_hash, created_at=None, updated_at=None):
+    def __init__(self, id, username, password_hash, salt, created_at=None, updated_at=None):
         self.id = id
         self.username = username
         self.password_hash = password_hash
+        self.salt = salt
         self.created_at = created_at or datetime.now().isoformat()
         self.updated_at = updated_at or datetime.now().isoformat()
     
@@ -20,15 +21,38 @@ class User:
         }
     
     @classmethod
-    def hash_password(cls, password):
-        """使用bcrypt哈希密码"""
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-        return hashed.decode('utf-8')
+    def generate_salt(cls):
+        # TODO
+        # """生成随机盐值"""
+        # salt = bcrypt.gensalt().decode('utf-8')
+        salt = 'default_salt'
+        return salt
+
+    @classmethod
+    def hash_password(cls, password, salt=None):
+        """使用PBKDF2算法生成哈希值，与前端保持一致"""
+        from utils.hash import pbkdf2_hash
+        
+        if salt is None:
+            salt = cls.generate_salt()
+        
+        # 为哈希派生添加固定后缀，与加密密钥区分，保持与前端一致
+        hash_input = f"{password}{salt}hash"
+        
+        # 使用PBKDF2算法生成哈希值，key_length=64字节（512位），与前端保持一致
+        return pbkdf2_hash(hash_input, salt, iterations=10000, key_length=64)
     
     def verify_password(self, password):
         """验证密码"""
-        return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
+        from utils.hash import pbkdf2_hash
+        
+        # 为哈希派生添加固定后缀，与加密密钥区分，保持与前端一致
+        hash_input = f"{password}{self.salt}hash"
+        
+        # 使用相同的PBKDF2算法生成哈希值，key_length=64字节（512位），与前端保持一致
+        generated_hash = pbkdf2_hash(hash_input, self.salt, iterations=10000, key_length=64)
+        
+        return generated_hash == self.password_hash
     
     @classmethod
     def get_by_username(cls, username):
@@ -42,6 +66,7 @@ class User:
                 row['id'],
                 row['username'],
                 row['password_hash'],
+                row['salt'],
                 row['created_at'],
                 row['updated_at']
             )
@@ -59,70 +84,85 @@ class User:
                 row['id'],
                 row['username'],
                 row['password_hash'],
+                row['salt'],
                 row['created_at'],
                 row['updated_at']
             )
         return None
     
     @classmethod
-    def create(cls, username, password):
+    def create(cls, username, password_hash, salt=None):
         """创建新用户"""
         user_id = datetime.now().strftime('%Y%m%d%H%M%S%f')
-        password_hash = cls.hash_password(password)
+        
+        # 如果没有提供盐值，使用新的generate_salt方法生成
+        if salt is None:
+            salt = cls.generate_salt()
+        
+        # 不再重新哈希，直接使用前端传来的哈希值
         
         query = '''
-            INSERT INTO users (id, username, password_hash, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO users (id, username, password_hash, salt, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
         '''
         
         params = (
             user_id,
             username,
             password_hash,
+            salt,
             datetime.now().isoformat(),
             datetime.now().isoformat()
         )
         
-        return Database.execute_query(query, params, commit=True)
+        success = Database.execute_query(query, params, commit=True)
+        if success:
+            return user_id
+        return None
     
-
+    
     
     @classmethod
-    def update(cls, user_id, username=None, password=None):
-        """更新用户信息"""
+    def update(cls, user_id, *args, **kwargs):
+        """更新用户信息
+        
+        支持两种调用方式：
+        1. User.update(user_id, username="new_username", password="new_password")
+        2. User.update(user_id, {"username": "new_username", "password": "new_password"})
+        """
         # 先获取现有用户
         existing_user = cls.get_by_id(user_id)
         if not existing_user:
             return False
         
+        # 处理参数
+        if args and isinstance(args[0], dict):
+            # 字典形式的参数
+            update_data = args[0]
+        else:
+            # 关键字参数形式
+            update_data = kwargs
+        
         # 更新字段
         updated_at = datetime.now().isoformat()
+        update_data['updated_at'] = updated_at
         
-        # 根据需要更新的字段构建查询
-        if username and password:
-            password_hash = cls.hash_password(password)
-            query = '''
-                UPDATE users SET 
-                    username = ?, password_hash = ?, updated_at = ? 
-                WHERE id = ?
-            '''
-            params = (username, password_hash, updated_at, user_id)
-        elif username:
-            query = '''
-                UPDATE users SET 
-                    username = ?, updated_at = ? 
-                WHERE id = ?
-            '''
-            params = (username, updated_at, user_id)
-        elif password:
-            password_hash = cls.hash_password(password)
-            query = '''
-                UPDATE users SET 
-                    password_hash = ?, updated_at = ? 
-                WHERE id = ?
-            '''
-            params = (password_hash, updated_at, user_id)
-        else:
+        # 处理密码更新
+        if 'password' in update_data:
+            new_password = update_data.pop('password')
+            new_salt = cls.generate_salt()  # 使用现有的generate_salt方法
+            password_hash = cls.hash_password(new_password, new_salt)
+            update_data['password_hash'] = password_hash
+            update_data['salt'] = new_salt
+        
+        # 构建查询
+        if not update_data:
             return False
+        
+        # 构建SET子句
+        set_clause = ', '.join([f"{key} = ?" for key in update_data.keys()])
+        params = list(update_data.values()) + [user_id]
+        
+        query = f'''UPDATE users SET {set_clause} WHERE id = ?'''
         
         return Database.execute_query(query, params, commit=True)

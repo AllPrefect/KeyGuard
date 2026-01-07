@@ -31,18 +31,43 @@ export const removeAuthToken = (): void => {
 };
 
 /**
+ * 获取盐值
+ * @returns 盐值字符串
+ */
+export const getSalt = async (): Promise<string | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/salt`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const data = await response.json();
+    return data.salt || null;
+  } catch (error) {
+    console.error('Error fetching salt:', error);
+    return null;
+  }
+};
+
+/**
  * 验证主密码
- * @param masterPassword 主密码
+ * @param derivedHash 从主密码和盐值派生的哈希值
  * @returns 是否验证成功和用户信息
  */
-export const authenticateMasterPassword = async (masterPassword: string): Promise<{ success: boolean; token?: string; user?: any }> => {
+export const authenticateMasterPassword = async (derivedHash: string): Promise<{ success: boolean; token?: string; user?: any }> => {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/master-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ masterPassword })
+      body: JSON.stringify({ derivedHash })
     });
     
     if (!response.ok) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { savePassword, fetchPasswords, deletePassword, authenticateMasterPassword, removeAuthToken } from '../services/passwordService';
-import { encrypt, decrypt, generateRandomPassword } from '../utils/encryption';
+import { savePassword, fetchPasswords, deletePassword, authenticateMasterPassword, removeAuthToken, getSalt } from '../services/passwordService';
+import { encrypt, decrypt, generateRandomPassword, deriveEncryptionKey, deriveHash } from '../utils/encryption';
 import { Password, FormData } from '../types';
 import Header from '../components/Header';
 import LoginForm from '../components/LoginForm';
@@ -251,16 +251,38 @@ const HomePage: React.FC = () => {
   const handleMasterPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (tempMasterPassword.trim()) {
-      const result = await authenticateMasterPassword(tempMasterPassword);
-      if (result.success) {
-        // 仅在验证成功后临时存储主密码到ref中
-        masterPasswordRef.current = tempMasterPassword;
-        // 清空临时状态
-        setTempMasterPassword('');
-        setIsAuthenticated(true);
-      } else {
-        showToast(MESSAGES.AUTH_FAILED, TOAST_TYPES.ERROR);
-        // 清空临时状态
+      try {
+        // 1. 获取盐值
+        const salt = await getSalt();
+        if (!salt) {
+          showToast('获取盐值失败，请重试', TOAST_TYPES.ERROR);
+          setTempMasterPassword('');
+          return;
+        }
+        
+        // 2. 派生加密密钥
+        const encryptionKey = deriveEncryptionKey(tempMasterPassword, salt);
+        
+        // 3. 派生哈希值用于身份验证
+        const hash = deriveHash(tempMasterPassword, salt);
+        
+        // 4. 发送哈希值到后端进行验证（不再发送盐值）
+        const result = await authenticateMasterPassword(hash);
+        
+        if (result.success) {
+          // 仅在验证成功后存储加密密钥到ref中（不再存储明文密码）
+          masterPasswordRef.current = encryptionKey;
+          // 清空临时状态
+          setTempMasterPassword('');
+          setIsAuthenticated(true);
+        } else {
+          showToast(MESSAGES.AUTH_FAILED, TOAST_TYPES.ERROR);
+          // 清空临时状态
+          setTempMasterPassword('');
+        }
+      } catch (error) {
+        console.error('登录过程发生错误:', error);
+        showToast('登录失败，请重试', TOAST_TYPES.ERROR);
         setTempMasterPassword('');
       }
     }
