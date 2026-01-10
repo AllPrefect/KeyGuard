@@ -10,4 +10,6 @@ auth_bp.route('/master-password', methods=['POST'])(AuthController.authenticate_
 auth_bp.route('/salt', methods=['GET'])(AuthController.get_salt)
 auth_bp.route('/verify-token', methods=['GET'])(AuthController.verify_token)
 auth_bp.route('/change-password', methods=['POST'])(AuthController.change_master_password)
+auth_bp.route('/check-user-exists', methods=['GET'])(AuthController.check_user_exists)
+auth_bp.route('/create-master-password', methods=['POST'])(AuthController.create_master_password)
 

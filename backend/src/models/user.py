@@ -3,11 +3,12 @@ import bcrypt
 from utils.db import Database
 
 class User:
-    def __init__(self, id, username, password_hash, salt, created_at=None, updated_at=None):
+    def __init__(self, id, username, password_hash, salt, invite_code, created_at=None, updated_at=None):
         self.id = id
         self.username = username
         self.password_hash = password_hash
         self.salt = salt
+        self.invite_code = invite_code
         self.created_at = created_at or datetime.now().isoformat()
         self.updated_at = updated_at or datetime.now().isoformat()
     
@@ -67,6 +68,7 @@ class User:
                 row['username'],
                 row['password_hash'],
                 row['salt'],
+                row['invite_code'],
                 row['created_at'],
                 row['updated_at']
             )
@@ -85,13 +87,14 @@ class User:
                 row['username'],
                 row['password_hash'],
                 row['salt'],
+                row['invite_code'],
                 row['created_at'],
                 row['updated_at']
             )
         return None
     
     @classmethod
-    def create(cls, username, password_hash, salt=None):
+    def create(cls, username, password_hash, invite_code, salt=None):
         """创建新用户"""
         user_id = datetime.now().strftime('%Y%m%d%H%M%S%f')
         
@@ -102,8 +105,8 @@ class User:
         # 不再重新哈希，直接使用前端传来的哈希值
         
         query = '''
-            INSERT INTO users (id, username, password_hash, salt, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO users (id, username, password_hash, salt, invite_code, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         '''
         
         params = (
@@ -111,6 +114,7 @@ class User:
             username,
             password_hash,
             salt,
+            invite_code,
             datetime.now().isoformat(),
             datetime.now().isoformat()
         )

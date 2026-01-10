@@ -56,18 +56,20 @@ export const getSalt = async (): Promise<string | null> => {
 };
 
 /**
- * 验证主密码
+ * 验证主密码（统一API - 登录或创建用户）
  * @param derivedHash 从主密码和盐值派生的哈希值
+ * @param inviteCode 邀请码
+ * @param salt 盐值
  * @returns 是否验证成功和用户信息
  */
-export const authenticateMasterPassword = async (derivedHash: string): Promise<{ success: boolean; token?: string; user?: any }> => {
+export const authenticateMasterPassword = async (derivedHash: string, inviteCode: string, salt: string): Promise<{ success: boolean; token?: string; user?: any }> => {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/master-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ derivedHash })
+      body: JSON.stringify({ derivedHash, inviteCode, salt })
     });
     
     if (!response.ok) {
@@ -110,6 +112,24 @@ const getAuthHeaders = (): HeadersInit => {
 };
 
 /**
+ * 处理API响应，如果返回401状态码，则清除认证令牌
+ * @param response API响应对象
+ * @returns 处理后的响应对象
+ */
+const handleApiResponse = async (response: Response): Promise<Response> => {
+  if (response.status === 401) {
+    // 清除认证令牌
+    removeAuthToken();
+    // 抛出特殊错误，供调用者处理
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(errorData.error || 'Authentication failed');
+    (error as any).isUnauthorized = true;
+    throw error;
+  }
+  return response;
+};
+
+/**
  * 保存密码到后端API
  * @param passwordData 密码数据
  * @returns 是否保存成功
@@ -121,6 +141,9 @@ export const savePassword = async (passwordData: Password): Promise<boolean> => 
       headers: getAuthHeaders(),
       body: JSON.stringify(passwordData)
     });
+    
+    // 处理API响应，检查401错误
+    await handleApiResponse(response);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -147,6 +170,9 @@ export const fetchPasswords = async (): Promise<Password[]> => {
       headers: authHeaders
     });
     
+    // 处理API响应，检查401错误
+    await handleApiResponse(response);
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || 'Failed to fetch passwords');
@@ -172,6 +198,9 @@ export const deletePassword = async (id: string): Promise<boolean> => {
       headers: getAuthHeaders()
     });
     
+    // 处理API响应，检查401错误
+    await handleApiResponse(response);
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || 'Failed to delete password');
@@ -195,12 +224,16 @@ export const fetchPasswordById = async (id: string): Promise<Password | null> =>
       headers: getAuthHeaders()
     });
     
+    // 处理API响应，检查401错误
+    await handleApiResponse(response);
+    
     if (response.status === 404) {
       return null;
     }
     
     if (!response.ok) {
-      throw new Error('Failed to fetch password');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to fetch password');
     }
     
     const password = await response.json();

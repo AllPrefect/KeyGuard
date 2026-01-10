@@ -48,6 +48,18 @@ class Database:
             )
         ''')
         
+        # 创建邀请码表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS invite_codes (
+                id TEXT PRIMARY KEY,
+                code TEXT NOT NULL UNIQUE,
+                status TEXT NOT NULL DEFAULT 'active',
+                expires_at TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        ''')
+        
         # 创建用户表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
@@ -55,13 +67,13 @@ class Database:
                 username TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
                 salt TEXT NOT NULL,
+                invite_code TEXT NOT NULL,
                 created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (invite_code) REFERENCES invite_codes(code)
             )
         ''')
-        
 
-        
         conn.commit()
         conn.close()
     

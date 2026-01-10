@@ -9,23 +9,24 @@ logger = Logger.get_logger('auth_controller')
 class AuthController:
     @staticmethod
     def authenticate_master_password():
-        """验证主密码"""
+        """统一认证API：首先尝试登录，如果失败则使用邀请码创建新用户"""
         try:
             logger.info("开始主密码认证")
             data = request.json
-            if not data or 'derivedHash' not in data:
-                logger.warning("派生哈希值缺失")
-                return jsonify({'error': 'Missing derived hash'}), 400
+            if not data or 'derivedHash' not in data or 'inviteCode' not in data:
+                logger.warning("派生哈希值或邀请码缺失")
+                return jsonify({'error': 'Missing derived hash or invite code'}), 400
             
             derived_hash = data['derivedHash']
+            invite_code = data['inviteCode']
             ip_address = request.remote_addr  # 从请求中获取IP地址
             
             logger.info(f"认证请求 - IP地址: {ip_address}")
             
-            # 直接根据password_hash查找用户
-            query = 'SELECT * FROM users WHERE password_hash = ?'
+            # 1. 首先尝试根据password_hash和invite_code查找用户（登录场景）
+            query = 'SELECT * FROM users WHERE password_hash = ? AND invite_code = ?'
             from utils.db import Database
-            rows = Database.execute_query(query, (derived_hash,))
+            rows = Database.execute_query(query, (derived_hash, invite_code))
             
             if rows:
                 # 找到匹配的用户，直接从行数据创建User对象，避免重复查询
@@ -35,6 +36,7 @@ class AuthController:
                     username=row['username'],
                     password_hash=row['password_hash'],
                     salt=row['salt'],
+                    invite_code=row['invite_code'],
                     created_at=row['created_at'],
                     updated_at=row['updated_at']
                 )
@@ -45,9 +47,48 @@ class AuthController:
                 logger.info(f"用户{user.username}认证成功，生成JWT令牌")
                 return jsonify({'success': True, 'token': token, 'user': user.to_dict()}), 200
             else:
-                # 没有找到匹配的用户，直接返回验证失败
-                logger.warning(f"认证失败 - 未找到匹配的用户 - IP地址: {ip_address}")
-                return jsonify({'success': False, 'error': 'Authentication failed'}), 401
+                # 2. 登录失败，尝试使用邀请码创建新用户
+                logger.info(f"登录失败，尝试使用邀请码{invite_code}创建新用户")
+                
+                # 导入InviteCode模型
+                from models.invite_code import InviteCode
+                
+                # 验证邀请码是否存在且未使用
+                invite_code_obj = InviteCode.get_by_code(invite_code)
+                if not invite_code_obj:
+                    logger.warning(f"邀请码{invite_code}不存在")
+                    return jsonify({'success': False, 'error': 'Invite code does not exist'}), 400
+                
+                if not invite_code_obj.is_valid():
+                    logger.warning(f"邀请码{invite_code}无效或已过期")
+                    return jsonify({'success': False, 'error': 'Invite code invalid or expired'}), 400
+                
+                # 3. 从请求中获取盐值
+                if 'salt' not in data:
+                    logger.warning("盐值缺失")
+                    return jsonify({'error': 'Missing salt'}), 400
+                
+                salt = data['salt']
+                
+                # 4. 创建用户
+                # 由于系统只支持单用户，用户名固定为'admin'
+                username = 'admin'
+                
+                # 创建用户
+                user_id = User.create(username, derived_hash, invite_code, salt)
+                
+                if user_id:
+                    # 5. 将邀请码标记为已使用
+                    InviteCode.mark_as_used(invite_code)
+                    
+                    logger.info("主密码创建成功")
+                    # 生成JWT令牌
+                    token = JWTUtil.generate_token(user_id, username, ip_address=ip_address)
+                    logger.info("生成JWT令牌")
+                    return jsonify({'success': True, 'token': token}), 200
+                else:
+                    logger.error("主密码创建失败")
+                    return jsonify({'success': False, 'error': 'Failed to create master password'}), 500
                 
         except Exception as e:
             logger.exception(f"认证过程发生错误: {str(e)}")
@@ -71,6 +112,74 @@ class AuthController:
             logger.exception(f"获取盐值过程发生错误: {str(e)}")
             return jsonify({'error': str(e)}), 500
     
+    @staticmethod
+    def check_user_exists():
+        """检查是否已有用户存在"""
+        try:
+            logger.info("检查是否已有用户存在")
+            
+            query = 'SELECT COUNT(*) as count FROM users'
+            from utils.db import Database
+            result = Database.execute_query(query)
+            
+            if result:
+                count = result[0]['count']
+                logger.info(f"当前用户数量: {count}")
+                return jsonify({'success': True, 'hasUsers': count > 0}), 200
+            else:
+                logger.warning("查询用户数量失败")
+                return jsonify({'success': False, 'error': 'Failed to check user existence'}), 500
+                
+        except Exception as e:
+            logger.exception(f"检查用户存在状态过程发生错误: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+    @staticmethod
+    def create_master_password():
+        """创建主密码"""
+        try:
+            logger.info("开始创建主密码")
+            data = request.json
+            if not data or 'derivedHash' not in data or 'salt' not in data or 'inviteCode' not in data:
+                logger.warning("派生哈希值、盐值或邀请码缺失")
+                return jsonify({'error': 'Missing derived hash, salt, or invite code'}), 400
+            
+            derived_hash = data['derivedHash']
+            salt = data['salt']
+            invite_code = data['inviteCode']
+            ip_address = request.remote_addr  # 从请求中获取IP地址
+            
+            logger.info(f"创建主密码请求 - IP地址: {ip_address}")
+            
+            # 检查邀请码是否已经存在
+            query = 'SELECT * FROM users WHERE invite_code = ?'
+            from utils.db import Database
+            result = Database.execute_query(query, (invite_code,))
+            if result:
+                logger.warning(f"邀请码{invite_code}已经存在")
+                return jsonify({'success': False, 'error': 'Invite code already exists'}), 400
+            
+            # 创建用户
+            # 由于系统只支持单用户，用户名固定为'admin'
+            username = 'admin'
+            
+            # 创建用户
+            user_id = User.create(username, derived_hash, salt, invite_code)
+            
+            if user_id:
+                logger.info("主密码创建成功")
+                # 生成JWT令牌
+                token = JWTUtil.generate_token(user_id, username, ip_address=ip_address)
+                logger.info("生成JWT令牌")
+                return jsonify({'success': True, 'token': token}), 200
+            else:
+                logger.error("主密码创建失败")
+                return jsonify({'success': False, 'error': 'Failed to create master password'}), 500
+                
+        except Exception as e:
+            logger.exception(f"创建主密码过程发生错误: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
     @staticmethod
     def verify_token():
         """验证令牌"""

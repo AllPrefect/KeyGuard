@@ -18,6 +18,7 @@ const HomePage: React.FC = () => {
   const [editingPassword, setEditingPassword] = useState<Password | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [tempMasterPassword, setTempMasterPassword] = useState<string>(''); // 仅用于登录表单
+  const [tempInviteCode, setTempInviteCode] = useState<string>(''); // 仅用于登录表单的邀请码
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const masterPasswordRef = useRef<string>(''); // 使用ref临时存储主密码，避免状态持久化
 
@@ -95,7 +96,13 @@ const HomePage: React.FC = () => {
         } catch (error) {
           console.error('Failed to load passwords:', error);
           setPasswords([]);
-          showToast('加载密码失败', TOAST_TYPES.ERROR);
+          // 检查是否是401错误（令牌过期）
+          if ((error as any).isUnauthorized) {
+            showToast('登录已过期，请重新登录', TOAST_TYPES.ERROR);
+            handleLogout();
+          } else {
+            showToast('加载密码失败', TOAST_TYPES.ERROR);
+          }
         }
       }
     };
@@ -178,7 +185,13 @@ const HomePage: React.FC = () => {
       setShowModal(false);
     } catch (error) {
       console.error('Failed to save password:', error);
-      showToast('保存密码失败', TOAST_TYPES.ERROR);
+      // 检查是否是401错误（令牌过期）
+      if ((error as any).isUnauthorized) {
+        showToast('登录已过期，请重新登录', TOAST_TYPES.ERROR);
+        handleLogout();
+      } else {
+        showToast('保存密码失败', TOAST_TYPES.ERROR);
+      }
     }
   };
 
@@ -194,7 +207,13 @@ const HomePage: React.FC = () => {
         setPasswords(updatedPasswords);
       } catch (error) {
         console.error('Failed to delete password:', error);
-        showToast(MESSAGES.DELETE_FAILED, TOAST_TYPES.ERROR);
+        // 检查是否是401错误（令牌过期）
+        if ((error as any).isUnauthorized) {
+          showToast('登录已过期，请重新登录', TOAST_TYPES.ERROR);
+          handleLogout();
+        } else {
+          showToast(MESSAGES.DELETE_FAILED, TOAST_TYPES.ERROR);
+        }
       }
     });
   };
@@ -247,16 +266,17 @@ const HomePage: React.FC = () => {
     resetForm();
   };
 
-  // 主密码验证
+  // 主密码验证或创建
   const handleMasterPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (tempMasterPassword.trim()) {
+    if (tempMasterPassword.trim() && tempInviteCode.trim()) {
       try {
         // 1. 获取盐值
         const salt = await getSalt();
         if (!salt) {
           showToast('获取盐值失败，请重试', TOAST_TYPES.ERROR);
           setTempMasterPassword('');
+          setTempInviteCode('');
           return;
         }
         
@@ -266,24 +286,28 @@ const HomePage: React.FC = () => {
         // 3. 派生哈希值用于身份验证
         const hash = deriveHash(tempMasterPassword, salt);
         
-        // 4. 发送哈希值到后端进行验证（不再发送盐值）
-        const result = await authenticateMasterPassword(hash);
+        // 4. 调用统一认证API - 登录或创建用户
+        const result = await authenticateMasterPassword(hash, tempInviteCode, salt);
         
         if (result.success) {
-          // 仅在验证成功后存储加密密钥到ref中（不再存储明文密码）
+          // 存储加密密钥到ref中
           masterPasswordRef.current = encryptionKey;
           // 清空临时状态
           setTempMasterPassword('');
+          setTempInviteCode('');
           setIsAuthenticated(true);
+          showToast('认证成功', TOAST_TYPES.SUCCESS);
         } else {
           showToast(MESSAGES.AUTH_FAILED, TOAST_TYPES.ERROR);
           // 清空临时状态
           setTempMasterPassword('');
+          setTempInviteCode('');
         }
       } catch (error) {
-        console.error('登录过程发生错误:', error);
-        showToast('登录失败，请重试', TOAST_TYPES.ERROR);
+        console.error('认证过程发生错误:', error);
+        showToast('认证失败，请重试', TOAST_TYPES.ERROR);
         setTempMasterPassword('');
+        setTempInviteCode('');
       }
     }
   };
@@ -330,10 +354,12 @@ const HomePage: React.FC = () => {
       
       {!isAuthenticated ? (
         <LoginForm
-          masterPassword={tempMasterPassword}
-          onMasterPasswordChange={setTempMasterPassword}
-          onSubmit={handleMasterPasswordSubmit}
-        />
+        masterPassword={tempMasterPassword}
+        inviteCode={tempInviteCode}
+        onMasterPasswordChange={setTempMasterPassword}
+        onInviteCodeChange={setTempInviteCode}
+        onSubmit={handleMasterPasswordSubmit}
+      />
       ) : (
         <>
           <div className="content">
