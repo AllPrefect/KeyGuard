@@ -21,6 +21,7 @@ const HomePage: React.FC = () => {
   const [tempInviteCode, setTempInviteCode] = useState<string>(''); // 仅用于登录表单的邀请码
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const masterPasswordRef = useRef<string>(''); // 使用ref临时存储主密码，避免状态持久化
+  const confirmCallbackRef = useRef<(() => Promise<void> | void) | null>(null); // 存储确认回调函数
 
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -40,7 +41,7 @@ const HomePage: React.FC = () => {
   // 确认对话框状态管理
   const [confirmVisible, setConfirmVisible] = useState<boolean>(false);
   const [confirmMessage, setConfirmMessage] = useState<string>('');
-  const [confirmCallback, setConfirmCallback] = useState<(() => Promise<void> | void) | null>(null);
+  // 确认回调函数现在存储在 ref 中，不再使用 state
 
   // 检查localStorage中是否有现有token和邀请码
   useEffect(() => {
@@ -87,23 +88,23 @@ const HomePage: React.FC = () => {
   // 显示确认对话框
   const showConfirm = (message: string, callback: () => Promise<void> | void) => {
     setConfirmMessage(message);
-    setConfirmCallback(callback);
+    confirmCallbackRef.current = callback; // 将回调函数存储在 ref 中
     setConfirmVisible(true);
   };
 
   // 处理确认操作
   const handleConfirm = async () => {
-    if (confirmCallback) {
-      await confirmCallback();
+    if (confirmCallbackRef.current) {
+      await confirmCallbackRef.current();
     }
     setConfirmVisible(false);
-    setConfirmCallback(null);
+    confirmCallbackRef.current = null; // 清空 ref
   };
 
   // 处理取消操作
   const handleCancel = () => {
     setConfirmVisible(false);
-    setConfirmCallback(null);
+    confirmCallbackRef.current = null; // 清空 ref
   };
 
   // 加载密码数据
