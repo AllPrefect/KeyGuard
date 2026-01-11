@@ -23,10 +23,8 @@ class User:
     
     @classmethod
     def generate_salt(cls):
-        # TODO
-        # """生成随机盐值"""
-        # salt = bcrypt.gensalt().decode('utf-8')
-        salt = 'default_salt'
+        """生成随机盐值"""
+        salt = bcrypt.gensalt().decode('utf-8')
         return salt
 
     @classmethod
@@ -170,3 +168,54 @@ class User:
         query = f'''UPDATE users SET {set_clause} WHERE id = ?'''
         
         return Database.execute_query(query, params, commit=True)
+    
+    @classmethod
+    def delete(cls, user_id):
+        """删除用户
+        
+        Args:
+            user_id (str): 用户ID
+            
+        Returns:
+            bool: 删除成功返回True，否则返回False
+        """
+        # 先检查用户是否存在
+        existing_user = cls.get_by_id(user_id)
+        if not existing_user:
+            return False
+        
+        # 删除用户的密码数据
+        from models.password import Password
+        if hasattr(Password, 'delete_by_user_id'):
+            Password.delete_by_user_id(user_id)
+        
+        # 删除用户
+        query = '''DELETE FROM users WHERE id = ?'''
+        params = (user_id,)
+        
+        return Database.execute_query(query, params, commit=True)
+    
+    @classmethod
+    def get_all(cls):
+        """获取所有用户列表
+        
+        Returns:
+            list[User]: 用户列表
+        """
+        query = '''SELECT * FROM users ORDER BY created_at DESC'''
+        rows = Database.execute_query(query)
+        
+        users = []
+        for row in rows:
+            user = cls(
+                id=row['id'],
+                username=row['username'],
+                password_hash=row['password_hash'],
+                salt=row['salt'],
+                invite_code=row['invite_code'],
+                created_at=row['created_at'],
+                updated_at=row['updated_at']
+            )
+            users.append(user)
+        
+        return users

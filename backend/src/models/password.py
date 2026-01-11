@@ -152,3 +152,9 @@ class Password:
         """删除密码，确保只能删除自己的密码"""
         query = 'DELETE FROM passwords WHERE id = ? AND user_id = ?'
         return Database.execute_query(query, (password_id, user_id), commit=True)
+    
+    @classmethod
+    def delete_by_user_id(cls, user_id):
+        """删除指定用户的所有密码"""
+        query = 'DELETE FROM passwords WHERE user_id = ?'
+        return Database.execute_query(query, (user_id,), commit=True)

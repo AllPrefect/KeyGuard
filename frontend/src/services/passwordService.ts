@@ -32,15 +32,17 @@ export const removeAuthToken = (): void => {
 
 /**
  * 获取盐值
+ * @param inviteCode 邀请码
  * @returns 盐值字符串
  */
-export const getSalt = async (): Promise<string | null> => {
+export const getSalt = async (inviteCode: string): Promise<string | null> => {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/salt`, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      body: JSON.stringify({ inviteCode })
     });
     
     if (!response.ok) {

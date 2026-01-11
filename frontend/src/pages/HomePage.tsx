@@ -295,8 +295,8 @@ const HomePage: React.FC = () => {
     e.preventDefault();
     if (tempMasterPassword.trim() && tempInviteCode.trim()) {
       try {
-        // 1. 获取盐值
-        const salt = await getSalt();
+        // 1. 使用邀请码获取盐值
+        const salt = await getSalt(tempInviteCode);
         if (!salt) {
           showToast('获取盐值失败，请重试', TOAST_TYPES.ERROR);
           setTempMasterPassword('');
@@ -304,7 +304,7 @@ const HomePage: React.FC = () => {
           return;
         }
         
-        // 2. 派生加密密钥
+        // 3. 派生加密密钥
         const encryptionKey = deriveEncryptionKey(tempMasterPassword, salt);
         if (!encryptionKey) {
           showToast('生成加密密钥失败，请重试', TOAST_TYPES.ERROR);
@@ -313,7 +313,7 @@ const HomePage: React.FC = () => {
           return;
         }
         
-        // 3. 派生哈希值用于身份验证
+        // 4. 派生哈希值用于身份验证
         const hash = deriveHash(tempMasterPassword, salt);
         if (!hash) {
           showToast('生成哈希值失败，请重试', TOAST_TYPES.ERROR);

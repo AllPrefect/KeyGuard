@@ -71,8 +71,7 @@ class AuthController:
                 salt = data['salt']
                 
                 # 4. 创建用户
-                # 由于系统只支持单用户，用户名固定为'admin'
-                username = 'admin'
+                username = 'user'
                 
                 # 创建用户
                 user_id = User.create(username, derived_hash, invite_code, salt)
@@ -97,12 +96,44 @@ class AuthController:
     
     @staticmethod
     def get_salt():
-        """获取用户盐值"""
+        """获取用户盐值：先根据邀请码和hash获取用户的盐值，没有再生成新的盐值返回"""
         try:
             logger.info("开始获取盐值")
-            # TODO: 从数据库中获取用户盐值返回
             
-            # 使用User模型的generate_salt方法生成随机盐值
+            # 从请求中获取邀请码
+            invite_code = None
+            
+            # 尝试从JSON请求体获取数据
+            if request.is_json and request.get_data():
+                try:
+                    data = request.json
+                    if data:
+                        invite_code = data.get('inviteCode') if hasattr(data, 'get') else None
+                except Exception as e:
+                    # JSON解析失败，忽略并尝试从查询参数获取
+                    logger.error(f"JSON解析失败: {str(e)}")
+                    pass
+            else:
+                # 尝试从查询参数获取数据
+                invite_code = request.args.get('inviteCode') if hasattr(request.args, 'get') else None
+            
+            logger.info(f"获取盐值请求 - 邀请码: {invite_code}")
+            
+            # 如果提供了邀请码，尝试从数据库中获取用户盐值
+            if invite_code:
+                query = 'SELECT salt FROM users WHERE invite_code = ?'
+                from utils.db import Database
+                result = Database.execute_query(query, (invite_code,))
+                
+                if result and len(result) > 0:
+                    # 找到用户，返回用户的盐值
+                    salt = result[0]['salt']
+                    logger.info("找到用户，返回用户的盐值")
+                    return jsonify({'success': True, 'salt': salt}), 200
+                else:
+                    logger.info("未找到匹配的用户")
+            
+            # 如果没有提供邀请码，或者没有找到用户，生成新的盐值返回
             from models.user import User
             salt = User.generate_salt()
             logger.info("生成随机盐值")

@@ -139,6 +139,69 @@
 .toolbar .search-box {
   flex: 1;
   min-width: 300px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.toolbar .search-box .search-icon {
+  position: absolute;
+  left: 16px;
+  color: var(--text-tertiary);
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.toolbar .search-box .search-input {
+  width: 100%;
+  padding: 14px 45px 14px 45px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.toolbar .search-box .search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.toolbar .search-box .clear-search-btn {
+  position: absolute;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+}
+
+.toolbar .search-box .clear-search-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.toolbar .add-password-btn {
+  padding: 14px 24px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .passwords-list {
@@ -160,12 +223,13 @@
 
 .password-item {
   background: var(--bg-primary);
-  border-radius: 12px;
+  border-radius: 16px;
   margin-bottom: 16px;
   padding: 20px;
   border: 1px solid var(--border-color);
   transition: all 0.3s ease;
   box-shadow: var(--shadow-md);
+  overflow: hidden;
 }
 
 .password-item:hover {
@@ -174,40 +238,170 @@
   border-color: var(--primary-color);
 }
 
-.password-info h3 {
+/* 密码项头部 */
+.password-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  background-color: var(--bg-secondary);
+}
+
+.password-title-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.platform-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-tertiary);
+  font-size: 20px;
+}
+
+.default-icon {
+  font-size: 24px;
+}
+
+.password-title {
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin: 0 0 4px 0;
   font-size: 1.2rem;
   font-weight: 600;
 }
 
-.password-info p {
-  margin-bottom: 5px;
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-}
-
-.password-info small {
+.password-category {
   color: var(--text-tertiary);
+  margin: 0;
   font-size: 0.85rem;
 }
 
+.created-date {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  margin-left: 20px;
+}
+
+/* 密码详情 */
+.password-details {
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.detail-item {
+  display: flex;
+  margin-bottom: 12px;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  width: 60px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  flex: 1;
+  word-break: break-all;
+}
+
+.password-hidden {
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+.url-link {
+  color: var(--primary-color);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.url-link:hover {
+  color: var(--primary-light);
+}
+
+.notes-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.notes-content {
+  background-color: var(--bg-primary);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  min-height: 40px;
+  font-style: italic;
+}
+
+/* 密码操作按钮 */
 .password-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  justify-content: flex-end;
   flex-wrap: wrap;
-  margin-top: 12px;
 }
 
 .password-actions .btn {
-  padding: 8px 16px;
+  padding: 10px 20px;
   font-size: 0.9rem;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 500;
   transition: all 0.3s ease;
   border: none;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.password-actions .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.password-actions .copy-btn {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.password-actions .copy-btn:hover {
+  background-color: var(--border-color);
+}
+
+.password-actions .edit-btn {
+  background: var(--gradient-primary);
+  color: white;
+}
+
+.password-actions .delete-btn {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.password-actions .delete-btn:hover {
+  background-color: var(--error-dark);
 }
 
 .btn-primary {
@@ -502,8 +696,462 @@
 .confirm-btn.cancel:hover {
   background-color: var(--border-color);
   color: var(--text-primary);
+}
+
+/* 密码表单模态框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-container {
+  background: var(--bg-primary);
+  padding: 30px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-color);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--bg-tertiary);
+}
+
+.modal-title-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-primary);
+  font-size: 24px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: all 0.3s ease;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.close-button:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  transform: rotate(90deg);
+}
+
+/* 密码表单样式 */
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 响应式表单内容布局 */
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .form-content {
+    flex-direction: row;
+    gap: 32px;
+    align-items: flex-start;
+  }
+  
+  .form-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-height: 100%;
+  }
+  
+  /* 确保两列高度一致 */
+  .form-column > .form-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+}
+
+/* 表单行样式 - 用于将账户和密码放在同一行 */
+.form-row {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 0; /* 确保flex项目可以缩小 */
+}
+
+/* 账户和密码字段的宽度调整 */
+.form-row .account-field {
+  flex: 1;
+}
+
+.form-row .password-field {
+  flex: 1.5; /* 密码字段宽度更大 */
+}
+
+/* 确保密码生成按钮不会影响整体布局 */
+.form-row .password-field .input-wrapper.with-button {
+  width: 100%;
+}
+
+.form-row .password-field .form-input.password-field {
+  flex: 1;
+}
+
+/* 表单验证样式 */
+.input-error {
+  border-color: var(--error-color);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  transition: all 0.3s ease;
+}
+
+.error-message {
+  color: var(--error-color);
+  font-size: 0.85rem;
+  margin-top: 4px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+/* 密码输入组的特殊样式 */
+.password-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 确保错误信息与输入框对齐 */
+.error-message {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.form-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-label::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper.with-button {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.input-wrapper.with-button .form-input {
+  flex: 1;
+  height: 52px;
+}
+
+.input-wrapper.with-button .generate-btn {
+  min-width: 120px;
+  height: 52px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  color: var(--text-tertiary);
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.form-input {
+  width: 100%;
+  height: 52px;
+  padding: 14px 16px 14px 50px;
+  border: 2px solid var(--border-color);
+  border-radius: 14px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+/* 为所有表单元素添加过渡动画 */
+.form-group,
+.form-section,
+.btn,
+.PlatformSelect,
+.select-wrapper {
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background-color: var(--bg-secondary);
+}
+
+.form-input.password-field {
+  padding-right: 20px;
+}
+
+/* 密码强度指示器样式 */
+.password-strength {
+  margin-top: 8px;
+  transition: all 0.3s ease;
+}
+
+.strength-meter-container {
+  width: 100%;
+  height: 8px;
+  background-color: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 4px;
+  transition: all 0.3s ease;
+}
+
+.strength-meter {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  border-radius: 4px;
+}
+
+.strength-meter.weak {
+  background-color: var(--error-color);
+}
+
+.strength-meter.medium {
+  background-color: var(--warning-color);
+}
+
+.strength-meter.strong {
+  background-color: var(--success-color);
+}
+
+.strength-message {
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  opacity: 1;
+}
+
+.strength-message.weak {
+  color: var(--error-color);
+}
+
+.strength-message.medium {
+  color: var(--warning-color);
+}
+
+.strength-message.strong {
+  color: var(--success-color);
+}
+
+.textarea-wrapper {
+  align-items: flex-start;
+  transition: all 0.3s ease;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 120px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  line-height: 1.6;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+/* 表单操作按钮 */
+.form-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 2px solid var(--bg-tertiary);
+  margin-top: 12px;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn {
+  border: 2px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  height: 52px;
+  padding: 0 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 14px;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.submit-btn {
+  border: 2px solid transparent;
+  height: 52px;
+  padding: 0 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 14px;
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 平台选择器样式 */
+.platform-select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 14px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.platform-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* 生成密码按钮 */
+.generate-btn {
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  border: 2px solid var(--primary-color);
+  background: transparent;
+  color: var(--primary-color);
+  border-radius: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.generate-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .confirm-btn.confirm {

@@ -82,42 +82,72 @@ const PasswordItem: React.FC<PasswordItemProps> = ({ password, onCopyPassword, o
 
   return (
     <div key={password.id} className="password-item">
-      <div className="password-info">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <h3>{password.title}</h3>
-          {passwordPlatform && (
-            <span>
-              {getIconComponent(passwordPlatform.icon, '#1890ff')}
-            </span>
-          )}
+      <div className="password-header">
+        <div className="password-title-container">
+          <div className="platform-icon">
+            {passwordPlatform ? (
+              getIconComponent(passwordPlatform.icon, passwordPlatform.iconColor || '#666')
+            ) : (
+              <div className="default-icon">🔒</div>
+            )}
+          </div>
+          <div>
+            <h3 className="password-title">{password.title}</h3>
+            <p className="password-category">{password.category}</p>
+          </div>
         </div>
-        <p><strong>用户名:</strong> {password.username}</p>
-        <p><strong>密码:</strong> ••••••••</p>
-        {password.url && <p><strong>网址:</strong> {password.url}</p>}
-        {password.notes && <p><strong>备注:</strong> {password.notes}</p>}
-        <small>创建时间: {new Date(password.createdAt).toLocaleDateString('zh-CN')}</small>
+        <span className="created-date">
+          {new Date(password.createdAt).toLocaleDateString('zh-CN')}
+        </span>
       </div>
+      
+      <div className="password-details">
+        <div className="detail-item">
+          <span className="detail-label">用户名:</span>
+          <span className="detail-value">{password.username}</span>
+        </div>
+        <div className="detail-item">
+          <span className="detail-label">密码:</span>
+          <span className="detail-value password-hidden">••••••••</span>
+        </div>
+        {password.url && (
+          <div className="detail-item">
+            <span className="detail-label">网址:</span>
+            <span className="detail-value url-link">{password.url}</span>
+          </div>
+        )}
+        {password.notes && (
+          <div className="detail-item notes-item">
+            <span className="detail-label">备注:</span>
+            <span className="detail-value notes-content">{password.notes}</span>
+          </div>
+        )}
+      </div>
+      
       <div className="password-actions">
         <button
           onClick={() => onCopyPassword(password.password)}
-          className="btn btn-primary"
+          className="btn btn-secondary copy-btn"
+          title="复制密码"
         >
-          复制密码
+          📋 复制密码
         </button>
         <button
           onClick={() => onEdit(password)}
-          className="btn btn-primary"
+          className="btn btn-primary edit-btn"
+          title="编辑密码"
         >
-          编辑
+          ✏️ 编辑
         </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete(password.id);
           }}
-          className="btn btn-danger"
+          className="btn btn-danger delete-btn"
+          title="删除密码"
         >
-          删除
+          🗑️ 删除
         </button>
       </div>
     </div>

@@ -65,7 +65,7 @@ class Database:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
-                username TEXT NOT NULL UNIQUE,
+                username TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
                 salt TEXT NOT NULL,
                 invite_code TEXT NOT NULL,
