@@ -42,6 +42,7 @@ class Database:
                 url TEXT,
                 category TEXT NOT NULL,
                 notes TEXT,
+                platform TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id)
@@ -104,7 +105,8 @@ class Database:
             else:
                 results = cursor.fetchall()
                 logger.debug(f"{query_type}查询返回{len(results)}条记录")
-                return results
+                # 将sqlite3.Row对象转换为字典
+                return [dict(row) for row in results]
         except Exception as e:
             conn.rollback()
             logger.error(f"数据库查询执行失败: {str(e)}")

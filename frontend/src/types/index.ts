@@ -9,6 +9,7 @@ export interface Password {
   notes?: string;
   createdAt: string;
   updatedAt?: string;
+  platform: string;
 }
 
 // PasswordData类型别名，确保与Password接口一致
@@ -27,6 +28,7 @@ export interface FormData {
   url?: string;
   category: string;
   notes?: string;
+  platform: string;
 }
 
 // 认证状态

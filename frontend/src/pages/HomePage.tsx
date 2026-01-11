@@ -28,7 +28,8 @@ const HomePage: React.FC = () => {
     password: '',
     url: '',
     category: '其他',
-    notes: ''
+    notes: '',
+    platform: ''
   });
 
   // Toast提示状态管理
@@ -39,17 +40,38 @@ const HomePage: React.FC = () => {
   // 确认对话框状态管理
   const [confirmVisible, setConfirmVisible] = useState<boolean>(false);
   const [confirmMessage, setConfirmMessage] = useState<string>('');
-  const [confirmCallback, setConfirmCallback] = useState<(() => void) | null>(null);
+  const [confirmCallback, setConfirmCallback] = useState<(() => Promise<void> | void) | null>(null);
 
-  // 检查localStorage中是否有现有token
+  // 检查localStorage中是否有现有token和邀请码
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     console.log('HomePage - Checking for existing token:', token);
     if (token) {
-      console.log('HomePage - Token found, setting authenticated to true');
-      setIsAuthenticated(true);
+      console.log('HomePage - Token found, checking for cached encryption key in sessionStorage');
+      // 从sessionStorage恢复加密密钥
+      const cachedKey = sessionStorage.getItem('encryption_key');
+      if (cachedKey) {
+        console.log('HomePage - Found cached encryption key in sessionStorage');
+        // 恢复到ref中
+        masterPasswordRef.current = cachedKey;
+        setIsAuthenticated(true);
+        showToast('会话已恢复', TOAST_TYPES.INFO);
+      } else {
+        console.log('HomePage - No cached encryption key found, need to re-authenticate');
+        // 显示提示并设置为未认证状态
+        showToast('会话已过期，请重新输入主密码', TOAST_TYPES.WARNING);
+        setIsAuthenticated(false);
+      }
     } else {
       console.log('HomePage - No token found in localStorage');
+      // 清除可能存在的缓存密钥
+      sessionStorage.removeItem('encryption_key');
+      // 加载缓存的邀请码
+      const cachedInviteCode = localStorage.getItem('cached_invite_code');
+      if (cachedInviteCode) {
+        console.log('HomePage - Found cached invite code:', cachedInviteCode);
+        setTempInviteCode(cachedInviteCode);
+      }
     }
   }, []);
 
@@ -63,16 +85,16 @@ const HomePage: React.FC = () => {
   };
 
   // 显示确认对话框
-  const showConfirm = (message: string, callback: () => void) => {
+  const showConfirm = (message: string, callback: () => Promise<void> | void) => {
     setConfirmMessage(message);
     setConfirmCallback(callback);
     setConfirmVisible(true);
   };
 
   // 处理确认操作
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (confirmCallback) {
-      confirmCallback();
+      await confirmCallback();
     }
     setConfirmVisible(false);
     setConfirmCallback(null);
@@ -255,7 +277,8 @@ const HomePage: React.FC = () => {
       password: '',
       url: '',
       category: '其他',
-      notes: ''
+      notes: '',
+      platform: ''
     });
     setEditingPassword(null);
   };
@@ -282,16 +305,32 @@ const HomePage: React.FC = () => {
         
         // 2. 派生加密密钥
         const encryptionKey = deriveEncryptionKey(tempMasterPassword, salt);
+        if (!encryptionKey) {
+          showToast('生成加密密钥失败，请重试', TOAST_TYPES.ERROR);
+          setTempMasterPassword('');
+          setTempInviteCode('');
+          return;
+        }
         
         // 3. 派生哈希值用于身份验证
         const hash = deriveHash(tempMasterPassword, salt);
+        if (!hash) {
+          showToast('生成哈希值失败，请重试', TOAST_TYPES.ERROR);
+          setTempMasterPassword('');
+          setTempInviteCode('');
+          return;
+        }
         
         // 4. 调用统一认证API - 登录或创建用户
         const result = await authenticateMasterPassword(hash, tempInviteCode, salt);
         
         if (result.success) {
-          // 存储加密密钥到ref中
+          // 存储加密密钥到ref和sessionStorage中
           masterPasswordRef.current = encryptionKey;
+          sessionStorage.setItem('encryption_key', encryptionKey);
+          console.log('HomePage - Encryption key stored in ref and sessionStorage');
+          // 缓存邀请码到localStorage
+          localStorage.setItem('cached_invite_code', tempInviteCode);
           // 清空临时状态
           setTempMasterPassword('');
           setTempInviteCode('');
@@ -317,6 +356,8 @@ const HomePage: React.FC = () => {
     setIsAuthenticated(false);
     // 清除主密码的临时存储
     masterPasswordRef.current = '';
+    // 清除sessionStorage中的加密密钥
+    sessionStorage.removeItem('encryption_key');
     setPasswords([]);
     removeAuthToken();
   };
@@ -357,7 +398,14 @@ const HomePage: React.FC = () => {
         masterPassword={tempMasterPassword}
         inviteCode={tempInviteCode}
         onMasterPasswordChange={setTempMasterPassword}
-        onInviteCodeChange={setTempInviteCode}
+        onInviteCodeChange={(code) => {
+          setTempInviteCode(code);
+          if (code) {
+            localStorage.setItem('cached_invite_code', code);
+          } else {
+            localStorage.removeItem('cached_invite_code');
+          }
+        }}
         onSubmit={handleMasterPasswordSubmit}
       />
       ) : (

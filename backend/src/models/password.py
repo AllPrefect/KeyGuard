@@ -2,7 +2,7 @@ from datetime import datetime
 from utils.db import Database
 
 class Password:
-    def __init__(self, id, user_id, title, username, password, category, url='', notes='', created_at=None, updated_at=None):
+    def __init__(self, id, user_id, title, username, password, category, url='', notes='', platform='', created_at=None, updated_at=None):
         self.id = id
         self.user_id = user_id
         self.title = title
@@ -11,6 +11,7 @@ class Password:
         self.url = url
         self.category = category
         self.notes = notes
+        self.platform = platform
         self.created_at = created_at or datetime.now().isoformat()
         self.updated_at = updated_at or datetime.now().isoformat()
     
@@ -25,6 +26,7 @@ class Password:
             'url': self.url or '',
             'category': self.category,
             'notes': self.notes or '',
+            'platform': self.platform or '',
             'createdAt': self.created_at,
             'updatedAt': self.updated_at
         }
@@ -44,6 +46,7 @@ class Password:
             row['category'],
             row['url'],
             row['notes'],
+            (row['platform'] if 'platform' in row else ''),
             row['created_at'],
             row['updated_at']
         ).to_dict() for row in rows]
@@ -65,6 +68,7 @@ class Password:
                 row['category'],
                 row['url'],
                 row['notes'],
+                (row['platform'] if 'platform' in row else ''),
                 row['created_at'],
                 row['updated_at']
             ).to_dict()
@@ -82,13 +86,16 @@ class Password:
             password_data['category'],
             password_data.get('url', ''),
             password_data.get('notes', ''),
+            password_data.get('platform', ''),
             password_data.get('createdAt'),
             datetime.now().isoformat()
         )
         
         query = '''
-            INSERT INTO passwords (id, user_id, title, username, password, url, category, notes, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO passwords (
+                id, user_id, title, username, password, url, 
+                category, notes, platform, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         '''
         
         params = (
@@ -100,6 +107,7 @@ class Password:
             password.url,
             password.category,
             password.notes,
+            password.platform,
             password.created_at,
             password.updated_at
         )
@@ -120,7 +128,7 @@ class Password:
         query = '''
             UPDATE passwords SET 
                 title = ?, username = ?, password = ?, url = ?, 
-                category = ?, notes = ?, updated_at = ? 
+                category = ?, notes = ?, platform = ?, updated_at = ? 
             WHERE id = ? AND user_id = ?
         '''
         
@@ -131,6 +139,7 @@ class Password:
             password_data.get('url', existing_password['url']),
             password_data.get('category', existing_password['category']),
             password_data.get('notes', existing_password['notes']),
+            password_data.get('platform', existing_password['platform']),
             updated_at,
             password_id,
             password_data['userId']

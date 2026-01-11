@@ -178,8 +178,7 @@ export const fetchPasswords = async (): Promise<Password[]> => {
       throw new Error(errorData.error || 'Failed to fetch passwords');
     }
     
-    const passwords = await response.json();
-    return passwords;
+    return await response.json();
   } catch (error) {
     console.error('Error fetching passwords:', error);
     throw error;
@@ -236,8 +235,7 @@ export const fetchPasswordById = async (id: string): Promise<Password | null> =>
       throw new Error(errorData.error || 'Failed to fetch password');
     }
     
-    const password = await response.json();
-    return password;
+    return await response.json();
   } catch (error) {
     console.error('Error fetching password by id:', error);
     throw error;

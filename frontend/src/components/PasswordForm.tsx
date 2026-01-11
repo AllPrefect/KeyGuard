@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FormData, PasswordData } from '../types';
 import { generateRandomPassword } from '../utils/encryption';
+import { platformTemplates } from '../utils/platformTemplates';
+import PlatformSelect from './PlatformSelect';
 
 interface PasswordFormProps {
   formData: FormData;
@@ -20,6 +22,40 @@ const PasswordForm: React.FC<PasswordFormProps> = ({
   onClose 
 }) => {
   const categories = ['社交', '工作', '金融', '娱乐', '购物', '其他'];
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('');
+
+  // 处理平台选择
+  const handlePlatformChange = (platformName: string) => {
+    setSelectedPlatform(platformName);
+
+    // 创建一个新的表单数据对象，更新平台字段
+    const newFormData = {
+      ...formData,
+      platform: platformName
+    };
+
+    // 如果选择了平台，使用其模板数据自动填充表单
+    if (platformName) {
+      const template = platformTemplates.find(t => t.name === platformName);
+      if (template) {
+        // 合并模板数据
+        newFormData.title = template.title;
+        newFormData.url = template.url;
+        newFormData.category = template.category;
+      }
+    }
+
+    // 更新表单输入
+    Object.entries(newFormData).forEach(([key, value]) => {
+      const event = {
+        target: {
+          name: key,
+          value: value || ''
+        }
+      } as React.ChangeEvent<HTMLInputElement | HTMLSelectElement>;
+      onInputChange(event);
+    });
+  };
 
   return (
     <div className="modal">
@@ -30,6 +66,15 @@ const PasswordForm: React.FC<PasswordFormProps> = ({
         </div>
         
         <form onSubmit={onSubmit}>
+          <div className="form-group">
+            <label>选择平台 (可选):</label>
+            <PlatformSelect
+              value={selectedPlatform}
+              onChange={handlePlatformChange}
+              placeholder="-- 选择常用平台 --"
+            />
+          </div>
+          
           <div className="form-group">
             <label>标题:</label>
             <input
@@ -43,13 +88,17 @@ const PasswordForm: React.FC<PasswordFormProps> = ({
           </div>
           
           <div className="form-group">
-            <label>用户名/邮箱:</label>
+            <label>账户:</label>
             <input
               type="text"
               name="username"
               value={formData.username}
               onChange={onInputChange}
-              placeholder="输入用户名或邮箱"
+              placeholder={
+                selectedPlatform ? 
+                platformTemplates.find(t => t.name === selectedPlatform)?.usernamePlaceholder || '输入用户名或邮箱' : 
+                '输入用户名或邮箱'
+              }
               required
             />
           </div>
