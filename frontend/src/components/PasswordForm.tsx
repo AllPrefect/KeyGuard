@@ -47,83 +47,47 @@ const PasswordForm: React.FC<PasswordFormProps> = ({
   };
 
   // 表单验证状态
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, boolean>>({});
 
   // 验证表单字段
-  const validateField = (fieldName: string, value: string): string => {
-    let error = '';
-    
+  const validateField = (fieldName: string, value: string): boolean => {
     switch (fieldName) {
       case 'title':
-        if (!value.trim()) {
-          error = '标题不能为空';
-        } else if (value.length > 50) {
-          error = '标题不能超过50个字符';
-        }
-        break;
+        return value.trim() !== '' && value.length <= 50;
       case 'username':
-        if (!value.trim()) {
-          error = '账户不能为空';
-        } else if (value.length > 100) {
-          error = '账户不能超过100个字符';
-        }
-        break;
+        return value.trim() !== '' && value.length <= 100;
       case 'password':
-        if (!value.trim()) {
-          error = '密码不能为空';
-        } else if (!passwordStrength.isValid && passwordStrength.score > 0) {
-          error = '密码强度不够，请增加密码复杂度';
-        }
-        break;
+        return value.trim() !== '' && (passwordStrength.score === 0 || passwordStrength.isValid);
       case 'url':
-        if (value && !/^https?:\/\/.+/.test(value)) {
-          error = '请输入有效的网址，以http://或https://开头';
-        }
-        break;
+        return !value || /^https?:\/\/.+/.test(value);
       default:
-        break;
+        return true;
     }
-    
-    return error;
-  };
-
-  // 处理输入变化，添加实时验证
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    // 调用父组件的onInputChange处理函数
-    onInputChange(e);
-    
-    // 实时验证当前字段
-    const { name, value } = e.target;
-    const error = validateField(name, value);
-    
-    setValidationErrors(prev => ({
-      ...prev,
-      [name]: error
-    }));
   };
 
   // 验证整个表单
   const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
+    const invalidFields: Record<string, boolean> = {};
     
     // 验证必填字段
     ['title', 'username', 'password'].forEach(field => {
-      const error = validateField(field, formData[field as keyof typeof formData] as string);
-      if (error) {
-        errors[field] = error;
+      const fieldName = field as keyof typeof formData;
+      const isValid = validateField(field, String(formData[fieldName]));
+      if (!isValid) {
+        invalidFields[field] = true;
       }
     });
     
     // 验证可选字段
     if (formData.url) {
-      const urlError = validateField('url', formData.url);
-      if (urlError) {
-        errors.url = urlError;
+      const isValid = validateField('url', formData.url);
+      if (!isValid) {
+        invalidFields.url = true;
       }
     }
     
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    setValidationErrors(invalidFields);
+    return Object.keys(invalidFields).length === 0;
   };
 
   // 处理表单提交
@@ -156,7 +120,7 @@ const PasswordForm: React.FC<PasswordFormProps> = ({
       }
     }
 
-    // 更新表单输入，使用handleInputChange确保实时验证
+    // 更新表单输入
     Object.entries(newFormData).forEach(([key, value]) => {
       const event = {
         target: {
@@ -164,7 +128,7 @@ const PasswordForm: React.FC<PasswordFormProps> = ({
           value: value || ''
         }
       } as React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>;
-      handleInputChange(event);
+      onInputChange(event);
     });
   };
 
@@ -189,8 +153,8 @@ const PasswordForm: React.FC<PasswordFormProps> = ({
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="password-form">
-          {/* 平台选择器 - 单独一行 */}
+        <form onSubmit={handleSubmit} className="password-form" noValidate>
+          {/* 平台选择器 */}
           <div className="form-group">
             <label className="form-label">选择平台 (可选)</label>
             <PlatformSelect
@@ -200,148 +164,125 @@ const PasswordForm: React.FC<PasswordFormProps> = ({
             />
           </div>
           
-          <div className="form-content">
-            <div className="form-column">
-              <div className="form-section">
-                
-                <div className="form-group">
-              <label className="form-label">标题</label>
-              <div className="input-wrapper">
+          {/* 标题字段 */}
+          <div className="form-group">
+            <label className="form-label">标题</label>
+            <div className="input-wrapper">
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={onInputChange}
+                placeholder="例如：Gmail账户"
+                required
+                className={`form-input ${validationErrors.title ? 'input-error' : ''}`}
+              />
+            </div>
+          </div>
+          
+          {/* 账户字段 */}
+          <div className="form-group">
+            <label className="form-label">账户</label>
+            <div className="input-wrapper">
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={onInputChange}
+                placeholder={
+                  selectedPlatform ? 
+                  platformTemplates.find(t => t.name === selectedPlatform)?.usernamePlaceholder || '输入用户名或邮箱' : 
+                  '输入用户名或邮箱'
+                }
+                required
+                className={`form-input ${validationErrors.username ? 'input-error' : ''}`}
+              />
+            </div>
+          </div>
+          
+          {/* 密码字段 */}
+          <div className="form-group">
+            <label className="form-label">密码</label>
+            <div className="password-input-group">
+              <div className="input-wrapper with-button">
                 <input
                   type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="例如：Gmail账户"
+                  name="password"
+                  value={formData.password}
+                  onChange={onInputChange}
+                  placeholder="输入密码"
                   required
-                  className={`form-input ${validationErrors.title ? 'input-error' : ''}`}
+                  className={`form-input ${validationErrors.password ? 'input-error' : ''}`}
                 />
+                <button
+                  type="button"
+                  onClick={onGeneratePassword}
+                  className="btn btn-secondary generate-btn"
+                >
+                  🎲 生成
+                </button>
               </div>
-              {validationErrors.title && (
-                <div className="error-message">{validationErrors.title}</div>
-              )}
-            </div>
-
-                
-                <div className="form-group">
-                  <label className="form-label">分类</label>
-                  <div className="input-wrapper">
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      className="form-input"
-                    >
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="form-column">
-              <div className="form-section">
-                {/* 账户和密码在同一行 */}
-                <div className="form-row">
-                  {/* 账户字段 */}
-                  <div className="form-group account-field">
-                    <label className="form-label">账户</label>
-                    <div className="input-wrapper">
-                      <input
-                        type="text"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleInputChange}
-                        placeholder={
-                          selectedPlatform ? 
-                          platformTemplates.find(t => t.name === selectedPlatform)?.usernamePlaceholder || '输入用户名或邮箱' : 
-                          '输入用户名或邮箱'
-                        }
-                        required
-                        className={`form-input ${validationErrors.username ? 'input-error' : ''}`}
-                      />
-                    </div>
-                    {validationErrors.username && (
-                      <div className="error-message">{validationErrors.username}</div>
-                    )}
-                  </div>
-                  
-                  {/* 密码字段 */}
-                  <div className="form-group password-input-group password-field">
-                <label className="form-label">密码</label>
-                <div className="input-wrapper with-button">
-                  <input
-                    type="text"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="输入密码"
-                    required
-                    className={`form-input password-field ${validationErrors.password ? 'input-error' : ''}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={onGeneratePassword}
-                    className="btn btn-secondary generate-btn"
-                  >
-                    🎲 生成
-                  </button>
-                </div>
-                {/* 密码强度指示器 */}
-                {formData.password && (
-                  <div className="password-strength">
-                    <div className="strength-meter-container">
-                      <div 
-                        className={`strength-meter ${getStrengthClass(passwordStrength.score)}`}
-                        style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
-                      />
-                    </div>
-                    <div className={`strength-message ${getStrengthClass(passwordStrength.score)}`}>
-                      {passwordStrength.message}
-                    </div>
-                  </div>
-                )}
-                {validationErrors.password && (
-                <div className="error-message">{validationErrors.password}</div>
-              )}
-            </div>
-          </div> {/* 关闭form-row */}
-          
-          <div className="form-group">
-                <label className="form-label">网址 (可选)</label>
-                <div className="input-wrapper">
-                  <input
-                    type="url"
-                    name="url"
-                    value={formData.url}
-                    onChange={handleInputChange}
-                    placeholder="https://example.com"
-                    className={`form-input ${validationErrors.url ? 'input-error' : ''}`}
-                  />
-                </div>
-                {validationErrors.url && (
-                  <div className="error-message">{validationErrors.url}</div>
-                )}
-              </div>
-              </div>
-              
-              <div className="form-section">
-                <div className="form-group">
-                  <label className="form-label">备注 (可选)</label>
-                  <div className="input-wrapper textarea-wrapper">
-                    <textarea
-                      name="notes"
-                      value={formData.notes}
-                      onChange={handleInputChange}
-                      placeholder="添加备注信息"
-                      rows={4}
-                      className="form-input form-textarea"
+              {/* 密码强度指示器 */}
+              {formData.password && (
+                <div className="password-strength">
+                  <div className="strength-meter-container">
+                    <div 
+                      className={`strength-meter ${getStrengthClass(passwordStrength.score)}`}
+                      style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
                     />
                   </div>
+                  <div className={`strength-message ${getStrengthClass(passwordStrength.score)}`}>
+                    {passwordStrength.message}
+                  </div>
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
+
+          {/* 分类字段 */}
+          <div className="form-group">
+            <label className="form-label">分类</label>
+            <div className="input-wrapper">
+              <select
+                name="category"
+                value={formData.category}
+                onChange={onInputChange}
+                className="form-input"
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          {/* 网址字段 */}
+          <div className="form-group">
+            <label className="form-label">网址 (可选)</label>
+            <div className="input-wrapper">
+              <input
+                type="url"
+                name="url"
+                value={formData.url}
+                onChange={onInputChange}
+                placeholder="https://example.com"
+                className={`form-input ${validationErrors.url ? 'input-error' : ''}`}
+              />
+            </div>
+          </div>
+          
+          {/* 备注字段 */}
+          <div className="form-group">
+            <label className="form-label">备注 (可选)</label>
+            <div className="input-wrapper textarea-wrapper">
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={onInputChange}
+                placeholder="添加备注信息"
+                rows={4}
+                className="form-input form-textarea"
+              />
             </div>
           </div>
           

@@ -715,7 +715,7 @@
 
 .modal-container {
   background: var(--bg-primary);
-  padding: 30px;
+  padding: 20px;
   border-radius: 20px;
   width: 90%;
   max-width: 600px;
@@ -741,8 +741,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 2px solid var(--bg-tertiary);
 }
 
@@ -799,7 +799,7 @@
 .password-form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
 }
 
 /* 响应式表单内容布局 */
@@ -883,13 +883,13 @@
 .form-section {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
   padding: 0;
 }
@@ -899,13 +899,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-/* 确保错误信息与输入框对齐 */
-.error-message {
-  margin-top: 4px;
-  font-size: 0.85rem;
-  line-height: 1.4;
 }
 
 .form-label {
@@ -1072,9 +1065,9 @@
   display: flex;
   gap: 16px;
   justify-content: flex-end;
-  padding-top: 20px;
+  padding-top: 16px;
   border-top: 2px solid var(--bg-tertiary);
-  margin-top: 12px;
+  margin-top: 4px;
   transition: all 0.3s ease;
 }
 

@@ -30,9 +30,9 @@ const LoginForm: React.FC<LoginFormProps> = ({
                 placeholder="XX"
                 required
                 minLength={2}
-                maxLength={2}
-                pattern="[0-9]{2}"
-                title="请输入两位数字的邀请码"
+                maxLength={6}
+                pattern="[0-9]{2,6}"
+                title="请输入合适邀请码"
                 style={{ width: '80px' }}
               />
             </div>
