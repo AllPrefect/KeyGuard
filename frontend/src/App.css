@@ -291,11 +291,13 @@
 
 /* 密码详情 */
 .password-details {
+  width: 280px;
   margin-bottom: 20px;
   padding: 16px;
   background-color: var(--bg-secondary);
   border-radius: 12px;
   border-left: 4px solid var(--primary-color);
+  box-sizing: border-box;
 }
 
 .detail-item {

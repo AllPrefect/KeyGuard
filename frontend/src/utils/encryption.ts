@@ -148,8 +148,8 @@ export const validatePasswordStrength = (password: string): {
 } => {
   if (!password) {
     return {
-      isValid: false,
-      message: 'Password is required',
+      isValid: true,
+      message: '',
       score: 0
     };
   }
@@ -166,23 +166,23 @@ export const validatePasswordStrength = (password: string): {
   if (/[0-9]/.test(password)) score++;
   if (/[^a-zA-Z0-9]/.test(password)) score++;
   
-  // 确定密码强度
+  // 确定密码强度（只作为提示，不限制）
   if (score < 3) {
     return {
-      isValid: false,
-      message: 'Password is too weak. It should be at least 8 characters long and include a mix of uppercase, lowercase, numbers, and special characters.',
+      isValid: true,
+      message: '密码强度较弱，建议至少8个字符并包含多种字符类型',
       score
     };
   } else if (score < 5) {
     return {
       isValid: true,
-      message: 'Password is medium strength',
+      message: '密码强度中等',
       score
     };
   } else {
     return {
       isValid: true,
-      message: 'Password is strong',
+      message: '密码强度较强',
       score
     };
   }
