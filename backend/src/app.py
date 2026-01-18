@@ -23,6 +23,10 @@ from routes.auth_routes import auth_bp
 # 初始化日志
 logger = Logger.get_logger('app')
 
+# 清理旧日志文件
+from utils.log_cleanup import cleanup_old_logs
+cleanup_old_logs()
+
 # 获取当前环境配置
 env = os.getenv('FLASK_ENV', 'default')
 current_config = config[env]

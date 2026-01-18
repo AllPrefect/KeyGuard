@@ -16,7 +16,7 @@ class Config:
     LOG_LEVEL = logging.INFO
     LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     LOG_FILE = os.path.join(LOG_DIR, 'keyguard.log')  # 日志文件路径，按天滚动时会自动添加日期后缀
-    LOG_BACKUP_COUNT = 30  # 保留30个备份文件（约一个月）
+    LOG_BACKUP_COUNT = 7  # 保留30个备份文件（约一个月）
     LOG_ROTATION_WHEN = 'MIDNIGHT'  # 滚动时间单位：S（秒）, M（分钟）, H（小时）, D（天）, MIDNIGHT（午夜）, W{0-6}（星期）
     LOG_ROTATION_INTERVAL = 1  # 滚动间隔
     LOG_ROTATION_TIME = '00:00:00'  # 自定义滚动时间（仅当LOG_ROTATION_WHEN为MIDNIGHT时生效），格式：HH:MM:SS

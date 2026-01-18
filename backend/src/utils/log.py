@@ -67,6 +67,44 @@ class DailyLogFileHandler(TimedRotatingFileHandler):
         
         # 更新下一次滚动时间
         self.rolloverAt = self.computeRollover(self.rolloverAt)
+        
+        # 清理旧日志文件
+        if self.backupCount > 0:
+            try:
+                # 获取日志目录
+                log_dir = os.path.dirname(self.baseFilename)
+                # 获取日志文件前缀
+                log_prefix = current_config.LOG_FILE_PREFIX
+                log_suffix = current_config.LOG_FILE_SUFFIX
+                
+                # 正则表达式匹配日志文件名，格式如：keyguard.2023-10-01.log
+                log_pattern = re.compile(rf'{log_prefix}\.(\d{{4}}-\d{{2}}-\d{{2}}){log_suffix}$')
+                
+                # 获取所有日志文件
+                log_files = []
+                for filename in os.listdir(log_dir):
+                    match = log_pattern.match(filename)
+                    if match:
+                        date_str = match.group(1)
+                        try:
+                            # 解析日期
+                            log_date = datetime.strptime(date_str, '%Y-%m-%d')
+                            log_files.append((log_date, os.path.join(log_dir, filename)))
+                        except ValueError:
+                            # 忽略日期格式错误的文件
+                            continue
+                
+                # 按日期排序，最新的在前
+                log_files.sort(reverse=True)
+                
+                # 如果文件数量超过backupCount，删除最旧的文件
+                if len(log_files) > self.backupCount:
+                    for _, file_path in log_files[self.backupCount:]:
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+            except Exception as e:
+                # 如果清理失败，记录错误但不影响主流程
+                print(f"清理旧日志文件失败: {str(e)}")
 
 # 生成包含当前日期的日志文件名
 def get_log_file_with_date():
