@@ -376,8 +376,31 @@ const HomePage: React.FC = () => {
     try {
       // 仅在需要时解密，使用后立即丢弃
       const decryptedPassword = decrypt(encryptedPassword, masterPasswordRef.current);
-      await navigator.clipboard.writeText(decryptedPassword);
-      showToast(MESSAGES.PASSWORD_COPIED, TOAST_TYPES.SUCCESS);
+      
+      // 优先使用现代的clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(decryptedPassword);
+        showToast(MESSAGES.PASSWORD_COPIED, TOAST_TYPES.SUCCESS);
+      } else {
+        // 使用传统的document.execCommand('copy')作为备用方案
+        // 创建一个临时的input元素
+        const textArea = document.createElement('textarea');
+        textArea.value = decryptedPassword;
+        textArea.style.position = 'fixed'; // 移出可视区域
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        
+        // 选择并复制文本
+        textArea.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (success) {
+          showToast(MESSAGES.PASSWORD_COPIED, TOAST_TYPES.SUCCESS);
+        } else {
+          throw new Error('execCommand copy failed');
+        }
+      }
     } catch (error) {
       console.error('Failed to decrypt and copy password:', error);
       showToast(MESSAGES.COPY_FAILED, TOAST_TYPES.ERROR);
